@@ -7,6 +7,7 @@ export * as hash from './hash';
 import * as misc from './misc';
 export * as quantity from './quantity';
 export * as signature from './signature';
+export * as signatureSecp256k1 from './signature_secp256k1';
 export * as staking from './staking';
 import * as types from './types';
 export {misc, types};

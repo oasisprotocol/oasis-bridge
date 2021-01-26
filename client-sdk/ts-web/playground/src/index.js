@@ -110,6 +110,19 @@ const client = new oasisBridge.OasisNodeClient('http://localhost:42280');
             }
             console.log('sent');
         }
+
+        // Try secp256k1 signing.
+        {
+            const signer = oasisBridge.signatureSecp256k1.EllipticSigner.fromRandom();
+            console.log('signer', signer);
+            const publicKey = signer.public();
+            console.log('public', publicKey);
+            const message = new Uint8Array([1, 2, 3]);
+            console.log('message', message);
+            const signature = await signer.sign(message);
+            console.log('signature', signature);
+            console.log('valid', await oasisBridge.signatureSecp256k1.placeholderVerify(message, signature, publicKey));
+        }
     } catch (e) {
         console.error(e);
     }
