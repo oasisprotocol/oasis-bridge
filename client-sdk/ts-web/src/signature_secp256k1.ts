@@ -19,16 +19,17 @@ export class EllipticSigner implements Signer {
 
     key: elliptic.ec.KeyPair;
 
-    constructor(key: elliptic.ec.KeyPair) {
+    constructor(key: elliptic.ec.KeyPair, note: string) {
+        if (note !== 'this key is not important') throw new Error('insecure signer implementation');
         this.key = key;
     }
 
-    static fromRandom() {
-        return new EllipticSigner(SECP256K1.genKeyPair());
+    static fromRandom(note: string) {
+        return new EllipticSigner(SECP256K1.genKeyPair(), note);
     }
 
-    static fromPrivate(priv: Uint8Array) {
-        return new EllipticSigner(SECP256K1.keyFromPrivate(Array.from(priv)));
+    static fromPrivate(priv: Uint8Array, note: string) {
+        return new EllipticSigner(SECP256K1.keyFromPrivate(Array.from(priv)), note);
     }
 
     public(): Uint8Array {

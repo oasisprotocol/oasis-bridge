@@ -50,8 +50,8 @@ const client = new oasisBridge.OasisNodeClient('http://localhost:42280');
 
         // Try sending a transaction.
         {
-            const src = oasisBridge.signature.EllipticSigner.fromRandom();
-            const dst = oasisBridge.signature.EllipticSigner.fromRandom();
+            const src = oasisBridge.signature.EllipticSigner.fromRandom('this key is not important');
+            const dst = oasisBridge.signature.EllipticSigner.fromRandom('this key is not important');
             console.log('src', src, 'dst', dst);
 
             const genesis = await client.consensusGetGenesisDocument();
@@ -112,7 +112,7 @@ const client = new oasisBridge.OasisNodeClient('http://localhost:42280');
 
         // Try secp256k1 signing.
         {
-            const signer = oasisBridge.signatureSecp256k1.EllipticSigner.fromRandom();
+            const signer = oasisBridge.signatureSecp256k1.EllipticSigner.fromRandom('this key is not important');
             console.log('signer', signer);
             const publicKey = signer.public();
             console.log('public', publicKey);
