@@ -120,7 +120,8 @@ const methodDescriptorRuntimeClientQueryTxs = createMethodDescriptorUnary<types.
 const methodDescriptorRuntimeClientWaitBlockIndexed = createMethodDescriptorUnary<types.RuntimeClientWaitBlockIndexedRequest, void>('RuntimeClient', 'WaitBlockIndexed');
 const methodDescriptorRuntimeClientWatchBlocks = createMethodDescriptorServerStreaming<Uint8Array, types.RoothashAnnotatedBlock>('RuntimeClient', 'WatchBlocks');
 
-// enclaverpc not modeled
+// enclaverpc
+const methodDescriptorEnclaveRPCCallEnclave = createMethodDescriptorUnary<types.EnclaveRPCCallEnclaveRequest, Uint8Array>('EnclaveRPC', 'CallEnclave');
 
 // consensus
 const methodDescriptorConsensusSubmitTx = createMethodDescriptorUnary<types.SignatureSigned, void>('Consensus', 'SubmitTx');
@@ -250,6 +251,9 @@ export class OasisNodeClient {
     runtimeClientQueryTxs(request: types.RuntimeClientQueryTxsRequest) { return this.callUnary(methodDescriptorRuntimeClientQueryTxs, request); }
     runtimeClientWaitBlockIndexed(request: types.RuntimeClientWaitBlockIndexedRequest) { return this.callUnary(methodDescriptorRuntimeClientWaitBlockIndexed, request); }
     runtimeClientWatchBlocks(runtimeID: Uint8Array) { return this.callServerStreaming(methodDescriptorRuntimeClientWatchBlocks, runtimeID); }
+
+    // enclaverpc
+    enclaveRPCCallEnclave(request: types.EnclaveRPCCallEnclaveRequest) { return this.callUnary(methodDescriptorEnclaveRPCCallEnclave, request); }
 
     // consensus
     consensusSubmitTx(tx: types.SignatureSigned) { return this.callUnary(methodDescriptorConsensusSubmitTx, tx); }
