@@ -1,0 +1,22 @@
+{
+    "name": "@oasisprotocol/client-bridge",
+    "version": "0.0.1",
+    "files": [
+        "dist"
+    ],
+    "main": "dist/index.js",
+    "scripts": {
+        "prepare": "tsc",
+        "playground": "cd playground && webpack s -c webpack.config.js"
+    },
+    "dependencies": {
+        "@oasisprotocol/client": "^0.0.1",
+        "@oasisprotocol/client-rt": "^0.0.1"
+    },
+    "devDependencies": {
+        "typescript": "^4.1.3",
+        "webpack": "^5.21.2",
+        "webpack-cli": "^4.5.0",
+        "webpack-dev-server": "^3.11.1"
+    }
+}
