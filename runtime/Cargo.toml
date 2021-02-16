@@ -1,0 +1,15 @@
+[package]
+name = "oasis-bridge-runtime"
+version = "0.1.0"
+authors = ["Oasis Protocol Foundation <info@oasisprotocol.org>"]
+edition = "2018"
+
+[[bin]]
+name = "oasis-bridge-runtime"
+
+[dependencies]
+# TODO: Use a specific tag.
+oasis-runtime-sdk = { git = "https://github.com/oasisprotocol/oasis-sdk", branch = "main" }
+
+# Modules.
+oasis-module-bridge = { path = "../module-bridge" }
