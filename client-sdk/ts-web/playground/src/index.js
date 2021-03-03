@@ -16,10 +16,12 @@ const MINT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisRT.accounts.MODUL
 const client = new oasis.OasisNodeClient('http://localhost:42280');
 
 /**
+ * @param {string} label
  * @param {oasis.signature.ContextSigner} user
  * @param {oasisRT.types.BaseUnits} amount
  */
-async function userOut(user, amount) {
+async function userOut(label, user, amount) {
+    console.log('out user', label, 'getting nonce');
     const nonce = /** @type {oasis.types.longnum} */ ((await client.runtimeClientQuery({
         runtime_id: BRIDGE_RUNTIME_ID,
         round: oasis.runtime.CLIENT_ROUND_LATEST,
@@ -28,6 +30,7 @@ async function userOut(user, amount) {
             address: await oasis.staking.addressFromPublicKey(user.public()),
         }),
     })).data);
+    console.log('out user', label, 'nonce', nonce);
 
     const transaction = /** @type {oasisRT.types.Transaction} */ ({
         v: oasisRT.transaction.LATEST_TRANSACTION_VERSION,
@@ -45,11 +48,14 @@ async function userOut(user, amount) {
             },
         },
     });
+    console.log('out user', label, 'transaction', transaction);
     const signed = await oasisRT.transaction.signUnverifiedTransaction([user], transaction);
+    console.log('out user', label, 'signed', signed);
     const result = /** @type {oasisRT.types.CallResult} */ (oasis.misc.fromCBOR(await client.runtimeClientSubmitTx({
         runtime_id: BRIDGE_RUNTIME_ID,
         data: oasis.misc.toCBOR(signed),
     })));
+    console.log('out user', label, 'result', result);
     if (result.fail) throw result.fail;
     const lockResult = /** @type {oasisBridge.LockResult} */ (result.ok);
 
@@ -57,12 +63,14 @@ async function userOut(user, amount) {
 }
 
 /**
+ * @param {string} label
  * @param {oasis.signature.ContextSigner} witness
  * @param {oasis.types.longnum} id
  * @param {oasisRT.types.BaseUnits} amount
  * @param {Uint8Array} owner
  */
-async function witnessIn(witness, id, amount, owner) {
+async function witnessIn(label, witness, id, amount, owner) {
+    console.log('in witness', label, 'getting nonce');
     const nonce = /** @type {oasis.types.longnum} */ ((await client.runtimeClientQuery({
         runtime_id: BRIDGE_RUNTIME_ID,
         round: oasis.runtime.CLIENT_ROUND_LATEST,
@@ -71,6 +79,7 @@ async function witnessIn(witness, id, amount, owner) {
             address: await oasis.staking.addressFromPublicKey(witness.public()),
         }),
     })).data);
+    console.log('in witness', label, 'nonce', nonce);
 
     const transaction = /** @type {oasisRT.types.Transaction} */ ({
         v: oasisRT.transaction.LATEST_TRANSACTION_VERSION,
@@ -90,19 +99,24 @@ async function witnessIn(witness, id, amount, owner) {
             },
         },
     });
+    console.log('in witness', label, 'transaction', transaction);
     const signed = await oasisRT.transaction.signUnverifiedTransaction([witness], transaction);
+    console.log('in witness', label, 'signed', signed);
     const result = /** @type {oasisRT.types.CallResult} */ (oasis.misc.fromCBOR(await client.runtimeClientSubmitTx({
         runtime_id: BRIDGE_RUNTIME_ID,
         data: oasis.misc.toCBOR(signed),
     })));
+    console.log('in witness', label, 'result', result);
     if (result.fail) throw result.fail;
 }
 
 /**
+ * @param {string} label
  * @param {oasis.signature.ContextSigner} witness
  * @param {oasis.types.longnum} id
  */
-async function witnessOut(witness, id) {
+async function witnessOut(label, witness, id) {
+    console.log('out witness', label, 'getting nonce');
     const nonce = /** @type {oasis.types.longnum} */ ((await client.runtimeClientQuery({
         runtime_id: BRIDGE_RUNTIME_ID,
         round: oasis.runtime.CLIENT_ROUND_LATEST,
@@ -111,6 +125,7 @@ async function witnessOut(witness, id) {
             address: await oasis.staking.addressFromPublicKey(witness.public()),
         }),
     })).data);
+    console.log('out witness', label, 'nonce', nonce);
 
     const transaction = /** @type {oasisRT.types.Transaction} */ ({
         v: oasisRT.transaction.LATEST_TRANSACTION_VERSION,
@@ -130,11 +145,14 @@ async function witnessOut(witness, id) {
             },
         },
     });
+    console.log('out witness', label, 'transaction', transaction);
     const signed = await oasisRT.transaction.signUnverifiedTransaction([witness], transaction);
+    console.log('out witness', label, 'signed', signed);
     const result = /** @type {oasisRT.types.CallResult} */ (oasis.misc.fromCBOR(await client.runtimeClientSubmitTx({
         runtime_id: BRIDGE_RUNTIME_ID,
         data: oasis.misc.toCBOR(signed),
     })));
+    console.log('out witness', label, 'result', result);
     if (result.fail) throw result.fail;
 }
 
@@ -154,14 +172,14 @@ async function witnessOut(witness, id) {
             console.log('observed lock', lockEvent);
             (async () => {
                 try {
-                    await witnessOut(new oasis.signature.BlindContextSigner(bob), lockEvent.id);
+                    await witnessOut('bob', new oasis.signature.BlindContextSigner(bob), lockEvent.id);
                 } catch (e) {
                     console.error(e);
                 }
             })();
             (async () => {
                 try {
-                    await witnessOut(new oasis.signature.BlindContextSigner(charlie), lockEvent.id);
+                    await witnessOut('charlie', new oasis.signature.BlindContextSigner(charlie), lockEvent.id);
                 } catch (e) {
                     console.error(e);
                 }
@@ -269,28 +287,30 @@ async function witnessOut(witness, id) {
 
         // Out flow.
         {
-            await userOut(new oasis.signature.BlindContextSigner(alice), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
+            await userOut('alice', new oasis.signature.BlindContextSigner(alice), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
         }
         // In flow.
         {
+            console.log('querying next sequence numbers');
             const numbers = /** @type {oasisBridge.NextSequenceNumbers} */ ((await client.runtimeClientQuery({
                 runtime_id: BRIDGE_RUNTIME_ID,
                 round: oasis.runtime.CLIENT_ROUND_LATEST,
                 method: oasisBridge.METHOD_NEXT_SEQUENCE_NUMBERS,
                 args: undefined,
             })).data);
+            console.log('next sequence numbers', numbers);
 
             const aliceAddress = await oasis.staking.addressFromPublicKey(alice.public());
 
             // Local denomination.
             const localAmount = /** @type {oasisRT.types.BaseUnits} */ ([oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
-            await witnessIn(new oasis.signature.BlindContextSigner(bob), numbers.in, localAmount, aliceAddress);
-            await witnessIn(new oasis.signature.BlindContextSigner(charlie), numbers.in, localAmount, aliceAddress);
+            await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), numbers.in, localAmount, aliceAddress);
+            await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), numbers.in, localAmount, aliceAddress);
 
             // Remote denomination.
             const remoteAmount = /** @type {oasisRT.types.BaseUnits} */ ([oasis.quantity.fromBigInt(10n), oasis.misc.fromString('oETH')]);
-            await witnessIn(new oasis.signature.BlindContextSigner(bob), BigInt(numbers.in) + 1n, remoteAmount, aliceAddress);
-            await witnessIn(new oasis.signature.BlindContextSigner(charlie), BigInt(numbers.in) + 1n, remoteAmount, aliceAddress);
+            await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), BigInt(numbers.in) + 1n, remoteAmount, aliceAddress);
+            await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), BigInt(numbers.in) + 1n, remoteAmount, aliceAddress);
         }
     } catch (e) {
         console.error(e);
