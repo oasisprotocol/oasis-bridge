@@ -13,6 +13,46 @@ const TRANSFER_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisRT.accounts.M
 const BURN_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisRT.accounts.MODULE_NAME, oasisRT.accounts.EVENT_BURN_CODE));
 const MINT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisRT.accounts.MODULE_NAME, oasisRT.accounts.EVENT_MINT_CODE));
 
+/**
+ * @template E
+ */
+class BridgeWaiter {
+
+    constructor() {
+        this.promised = /** @type {{[idStr: string]: Promise<E>}} */ ({});
+        this.requested = /** @type {{[idStr: string]: {resolve: (event: E) => void, reject: (reason: any) => void}}} */ ({});
+    }
+
+    /**
+     * @param {oasis.types.longnum} id
+     */
+    wait(id) {
+        const idStr = '' + id;
+        if (!(idStr in this.promised)) {
+            this.promised[idStr] = new Promise((resolve, reject) => {
+                this.requested[idStr] = {resolve, reject};
+            });
+        }
+        return this.promised[idStr];
+    }
+
+    /**
+     * @param {oasis.types.longnum} id
+     * @param {E} event
+     */
+    observe(id, event) {
+        const idStr = '' + id;
+        if (idStr in this.requested) {
+            const {resolve, reject} = this.requested[idStr];
+            delete this.requested[idStr];
+            resolve(event);
+        } else {
+            this.promised[idStr] = Promise.resolve(event);
+        }
+    }
+
+}
+
 const client = new oasis.OasisNodeClient('http://localhost:42280');
 
 /**
@@ -162,6 +202,12 @@ async function witnessOut(label, witness, id) {
         const bob = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: bob')), 'this key is not important');
         const charlie = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: charlie')), 'this key is not important');
 
+        const aliceAddress = await oasis.staking.addressFromPublicKey(alice.public());
+
+        const lockWaiter = /** @type {BridgeWaiter<oasisBridge.LockEvent>} */ (new BridgeWaiter());
+        const releaseWaiter = /** @type {BridgeWaiter<oasisBridge.ReleaseEvent>} */ (new BridgeWaiter());
+        const witnessesSignedWaiter = /** @type {BridgeWaiter<oasisBridge.WitnessSignatures>} */ (new BridgeWaiter());
+
         // The user and witnesses are normally on different computers and would each watch blocks on their
         // own, but for simplicity in this example, we're running a single shared subscription.
 
@@ -170,20 +216,7 @@ async function witnessOut(label, witness, id) {
          */
         function handleLockEvent(lockEvent) {
             console.log('observed lock', lockEvent);
-            (async () => {
-                try {
-                    await witnessOut('bob', new oasis.signature.BlindContextSigner(bob), lockEvent.id);
-                } catch (e) {
-                    console.error(e);
-                }
-            })();
-            (async () => {
-                try {
-                    await witnessOut('charlie', new oasis.signature.BlindContextSigner(charlie), lockEvent.id);
-                } catch (e) {
-                    console.error(e);
-                }
-            })();
+            lockWaiter.observe(lockEvent.id, lockEvent);
         }
 
         /**
@@ -191,6 +224,7 @@ async function witnessOut(label, witness, id) {
          */
         function handleReleaseEvent(releaseEvent) {
             console.log('observed release', releaseEvent);
+            releaseWaiter.observe(releaseEvent.id, releaseEvent);
         }
 
         /**
@@ -198,6 +232,7 @@ async function witnessOut(label, witness, id) {
          */
         function handleWitnessesSignedEvent(witnessSignatures) {
             console.log('observed witnesses signed', witnessSignatures);
+            witnessesSignedWaiter.observe(witnessSignatures.id, witnessSignatures);
         }
 
         /**
@@ -287,11 +322,20 @@ async function witnessOut(label, witness, id) {
 
         // Out flow.
         {
-            await userOut('alice', new oasis.signature.BlindContextSigner(alice), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
+            console.log('out user locking');
+            const id = await userOut('alice', new oasis.signature.BlindContextSigner(alice), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
+            console.log('out waiting for lock event');
+            await lockWaiter.wait(id);
+            console.log('out witnesses signing');
+            await witnessOut('bob', new oasis.signature.BlindContextSigner(bob), id);
+            await witnessOut('charlie', new oasis.signature.BlindContextSigner(charlie), id);
+            console.log('out waiting for witnesses signed event');
+            await witnessesSignedWaiter.wait(id);
+            console.log('out done');
         }
         // In flow.
         {
-            console.log('querying next sequence numbers');
+            console.log('in querying next sequence numbers');
             const numbers = /** @type {oasisBridge.NextSequenceNumbers} */ ((await client.runtimeClientQuery({
                 runtime_id: BRIDGE_RUNTIME_ID,
                 round: oasis.runtime.CLIENT_ROUND_LATEST,
@@ -299,18 +343,26 @@ async function witnessOut(label, witness, id) {
                 args: undefined,
             })).data);
             console.log('next sequence numbers', numbers);
-
-            const aliceAddress = await oasis.staking.addressFromPublicKey(alice.public());
+            const localReleaseID = BigInt(numbers.in);
+            const remoteReleaseID = BigInt(numbers.in) + 1n;
 
             // Local denomination.
             const localAmount = /** @type {oasisRT.types.BaseUnits} */ ([oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
-            await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), numbers.in, localAmount, aliceAddress);
-            await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), numbers.in, localAmount, aliceAddress);
+            console.log('in local witnesses signing');
+            await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), localReleaseID, localAmount, aliceAddress);
+            await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), localReleaseID, localAmount, aliceAddress);
+            console.log('in local waiting for release event');
+            await releaseWaiter.wait(localReleaseID);
+            console.log('in local done');
 
             // Remote denomination.
             const remoteAmount = /** @type {oasisRT.types.BaseUnits} */ ([oasis.quantity.fromBigInt(10n), oasis.misc.fromString('oETH')]);
-            await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), BigInt(numbers.in) + 1n, remoteAmount, aliceAddress);
-            await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), BigInt(numbers.in) + 1n, remoteAmount, aliceAddress);
+            console.log('in remote witnesses signing');
+            await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), remoteReleaseID, remoteAmount, aliceAddress);
+            await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), remoteReleaseID, remoteAmount, aliceAddress);
+            console.log('in remote waiting for release event');
+            await releaseWaiter.wait(remoteReleaseID);
+            console.log('in remote done');
         }
     } catch (e) {
         console.error(e);
