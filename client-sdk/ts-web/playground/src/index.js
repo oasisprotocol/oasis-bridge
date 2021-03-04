@@ -6,6 +6,9 @@ import * as oasisRT from '@oasisprotocol/client-rt';
 import * as oasisBridge from './../..';
 
 const BRIDGE_RUNTIME_ID = oasis.misc.fromHex('8000000000000000000000000000000000000000000000000000000000000000');
+
+const FEE_FREE = /** @type {oasisRT.types.Fee} */ ({amount: [oasis.quantity.fromBigInt(0n), oasisRT.token.NATIVE_DENOMINATION], gas: 0n});
+
 const LOCK_EVENT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisBridge.MODULE_NAME, oasisBridge.EVENT_LOCK_CODE));
 const RELEASE_EVENT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisBridge.MODULE_NAME, oasisBridge.EVENT_RELEASE_CODE));
 const WITNESSES_SIGNED_EVENT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisBridge.MODULE_NAME, oasisBridge.EVENT_WITNESSES_SIGNED_CODE));
@@ -54,6 +57,8 @@ class BridgeWaiter {
 }
 
 const client = new oasis.OasisNodeClient('http://localhost:42280');
+const accountsClient = new oasisRT.accounts.Client(client, BRIDGE_RUNTIME_ID);
+const bridgeClient = new oasisBridge.Client(client, BRIDGE_RUNTIME_ID);
 
 /**
  * @param {string} label
@@ -62,42 +67,17 @@ const client = new oasis.OasisNodeClient('http://localhost:42280');
  */
 async function userOut(label, user, amount) {
     console.log('out user', label, 'getting nonce');
-    const nonce = /** @type {oasis.types.longnum} */ ((await client.runtimeClientQuery({
-        runtime_id: BRIDGE_RUNTIME_ID,
-        round: oasis.runtime.CLIENT_ROUND_LATEST,
-        method: oasisRT.accounts.METHOD_NONCE,
-        args: /** @type {oasisRT.types.AccountsNonceQuery} */ ({
-            address: await oasis.staking.addressFromPublicKey(user.public()),
-        }),
-    })).data);
-    console.log('out user', label, 'nonce', nonce);
-
-    const transaction = /** @type {oasisRT.types.Transaction} */ ({
-        v: oasisRT.transaction.LATEST_TRANSACTION_VERSION,
-        call: {
-            method: oasisBridge.METHOD_LOCK,
-            body: /** @type {oasisBridge.Lock} */ ({
-                amount,
-            }),
-        },
-        ai: {
-            si: [{pub: {ed25519: user.public()}, nonce}],
-            fee: {
-                amount: [oasis.quantity.fromBigInt(0n), oasisRT.token.NATIVE_DENOMINATION],
-                gas: 0,
-            },
-        },
+    const nonce = await accountsClient.queryNonce(oasis.runtime.CLIENT_ROUND_LATEST, {
+        address: await oasis.staking.addressFromPublicKey(user.public()),
     });
-    console.log('out user', label, 'transaction', transaction);
-    const signed = await oasisRT.transaction.signUnverifiedTransaction([user], transaction);
-    console.log('out user', label, 'signed', signed);
-    const result = /** @type {oasisRT.types.CallResult} */ (oasis.misc.fromCBOR(await client.runtimeClientSubmitTx({
-        runtime_id: BRIDGE_RUNTIME_ID,
-        data: oasis.misc.toCBOR(signed),
-    })));
-    console.log('out user', label, 'result', result);
-    if (result.fail) throw result.fail;
-    const lockResult = /** @type {oasisBridge.LockResult} */ (result.ok);
+    console.log('out user', label, 'nonce', nonce);
+    const siUser = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: user.public()}, nonce});
+
+    console.log('out user', label, 'locking', amount);
+    const lockResult = await bridgeClient.callLock({
+        amount,
+    }, [siUser], FEE_FREE, [user]);
+    console.log('out user', label, 'lock result', lockResult);
 
     return lockResult.id
 }
@@ -111,43 +91,19 @@ async function userOut(label, user, amount) {
  */
 async function witnessIn(label, witness, id, amount, owner) {
     console.log('in witness', label, 'getting nonce');
-    const nonce = /** @type {oasis.types.longnum} */ ((await client.runtimeClientQuery({
-        runtime_id: BRIDGE_RUNTIME_ID,
-        round: oasis.runtime.CLIENT_ROUND_LATEST,
-        method: oasisRT.accounts.METHOD_NONCE,
-        args: /** @type {oasisRT.types.AccountsNonceQuery} */ ({
-            address: await oasis.staking.addressFromPublicKey(witness.public()),
-        }),
-    })).data);
-    console.log('in witness', label, 'nonce', nonce);
-
-    const transaction = /** @type {oasisRT.types.Transaction} */ ({
-        v: oasisRT.transaction.LATEST_TRANSACTION_VERSION,
-        call: {
-            method: oasisBridge.METHOD_RELEASE,
-            body: /** @type {oasisBridge.Release} */ ({
-                id,
-                amount,
-                owner,
-            }),
-        },
-        ai: {
-            si: [{pub: {ed25519: witness.public()}, nonce}],
-            fee: {
-                amount: [oasis.quantity.fromBigInt(0n), oasisRT.token.NATIVE_DENOMINATION],
-                gas: 0,
-            },
-        },
+    const nonce = await accountsClient.queryNonce(oasis.runtime.CLIENT_ROUND_LATEST, {
+        address: await oasis.staking.addressFromPublicKey(witness.public()),
     });
-    console.log('in witness', label, 'transaction', transaction);
-    const signed = await oasisRT.transaction.signUnverifiedTransaction([witness], transaction);
-    console.log('in witness', label, 'signed', signed);
-    const result = /** @type {oasisRT.types.CallResult} */ (oasis.misc.fromCBOR(await client.runtimeClientSubmitTx({
-        runtime_id: BRIDGE_RUNTIME_ID,
-        data: oasis.misc.toCBOR(signed),
-    })));
-    console.log('in witness', label, 'result', result);
-    if (result.fail) throw result.fail;
+    console.log('in witness', label, 'nonce', nonce);
+    const siWitness = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: witness.public()}, nonce});
+
+    console.log('in witness', label, 'releasing', id, amount, owner);
+    await bridgeClient.callRelease({
+        id,
+        amount,
+        owner,
+    }, [siWitness], FEE_FREE, [witness]);
+    console.log('in witness', label, 'release done');
 }
 
 /**
@@ -157,43 +113,19 @@ async function witnessIn(label, witness, id, amount, owner) {
  */
 async function witnessOut(label, witness, id) {
     console.log('out witness', label, 'getting nonce');
-    const nonce = /** @type {oasis.types.longnum} */ ((await client.runtimeClientQuery({
-        runtime_id: BRIDGE_RUNTIME_ID,
-        round: oasis.runtime.CLIENT_ROUND_LATEST,
-        method: oasisRT.accounts.METHOD_NONCE,
-        args: /** @type {oasisRT.types.AccountsNonceQuery} */ ({
-            address: await oasis.staking.addressFromPublicKey(witness.public()),
-        }),
-    })).data);
-    console.log('out witness', label, 'nonce', nonce);
-
-    const transaction = /** @type {oasisRT.types.Transaction} */ ({
-        v: oasisRT.transaction.LATEST_TRANSACTION_VERSION,
-        call: {
-            method: oasisBridge.METHOD_WITNESS,
-            body: /** @type {oasisBridge.Witness} */ ({
-                id,
-                // todo: Reconcile this with module-bridge/src/lib.rs.
-                sig: oasis.misc.fromString(`signature:${btoa(String.fromCharCode.apply(null, witness.public()))}`),
-            }),
-        },
-        ai: {
-            si: [{pub: {ed25519: witness.public()}, nonce}],
-            fee: {
-                amount: [oasis.quantity.fromBigInt(0n), oasisRT.token.NATIVE_DENOMINATION],
-                gas: 0,
-            },
-        },
+    const nonce = await accountsClient.queryNonce(oasis.runtime.CLIENT_ROUND_LATEST, {
+        address: await oasis.staking.addressFromPublicKey(witness.public()),
     });
-    console.log('out witness', label, 'transaction', transaction);
-    const signed = await oasisRT.transaction.signUnverifiedTransaction([witness], transaction);
-    console.log('out witness', label, 'signed', signed);
-    const result = /** @type {oasisRT.types.CallResult} */ (oasis.misc.fromCBOR(await client.runtimeClientSubmitTx({
-        runtime_id: BRIDGE_RUNTIME_ID,
-        data: oasis.misc.toCBOR(signed),
-    })));
-    console.log('out witness', label, 'result', result);
-    if (result.fail) throw result.fail;
+    console.log('out witness', label, 'nonce', nonce);
+    const siWitness = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: witness.public()}, nonce});
+
+    const sig = oasis.misc.fromString(`signature:${btoa(String.fromCharCode.apply(null, witness.public()))}`);
+    console.log('out witness', label, 'witnessing', id, sig);
+    await bridgeClient.callWitness({
+        id,
+        sig,
+    }, [siWitness], FEE_FREE, [witness]);
+    console.log('out witness', label, 'witness done');
 }
 
 (async function () {
@@ -336,12 +268,7 @@ async function witnessOut(label, witness, id) {
         // In flow.
         {
             console.log('in querying next sequence numbers');
-            const numbers = /** @type {oasisBridge.NextSequenceNumbers} */ ((await client.runtimeClientQuery({
-                runtime_id: BRIDGE_RUNTIME_ID,
-                round: oasis.runtime.CLIENT_ROUND_LATEST,
-                method: oasisBridge.METHOD_NEXT_SEQUENCE_NUMBERS,
-                args: undefined,
-            })).data);
+            const numbers = await bridgeClient.queryNextSequenceNumbers(oasis.runtime.CLIENT_ROUND_LATEST);
             console.log('next sequence numbers', numbers);
             const localReleaseID = BigInt(numbers.in);
             const remoteReleaseID = BigInt(numbers.in) + 1n;

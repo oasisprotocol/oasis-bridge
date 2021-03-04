@@ -92,3 +92,17 @@ export interface WitnessSignatures {
     wits?: number[];
     sigs?: Uint8Array[];
 }
+
+export class Client extends oasisRT.wrapper.Wrapper {
+
+    constructor(client: oasis.OasisNodeClient, runtimeID: Uint8Array) {
+        super(client, runtimeID);
+    }
+
+    callLock(body: Lock, signerInfo: oasisRT.types.SignerInfo[], fee: oasisRT.types.Fee, signers: oasisRT.transaction.AnySigner[]) { return this.call(METHOD_LOCK, body, signerInfo, fee, signers) as Promise<LockResult>; }
+    callWitness(body: Witness, signerInfo: oasisRT.types.SignerInfo[], fee: oasisRT.types.Fee, signers: oasisRT.transaction.AnySigner[]) { return this.call(METHOD_WITNESS, body, signerInfo, fee, signers) as Promise<void>; }
+    callRelease(body: Release, signerInfo: oasisRT.types.SignerInfo[], fee: oasisRT.types.Fee, signers: oasisRT.transaction.AnySigner[]) { return this.call(METHOD_RELEASE, body, signerInfo, fee, signers) as Promise<void>; }
+
+    queryNextSequenceNumbers(round: oasis.types.longnum) { return this.query(round, METHOD_NEXT_SEQUENCE_NUMBERS, undefined) as Promise<NextSequenceNumbers>; }
+
+}
