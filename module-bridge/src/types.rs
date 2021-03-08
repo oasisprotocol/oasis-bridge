@@ -1,7 +1,10 @@
 //! Bridge module types.
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use oasis_runtime_sdk::{
+    core::common::{cbor, crypto::hash::Hash},
     crypto::signature::Signature,
     types::{address::Address, token},
 };
@@ -76,7 +79,17 @@ pub enum Operation {
     Release(Release),
 }
 
-/// Outgoing witness signatures.
+/// A unique operation identifier.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct OperationId(Hash);
+
+impl From<&Operation> for OperationId {
+    fn from(op: &Operation) -> OperationId {
+        OperationId(Hash::digest_bytes(&cbor::to_vec(op)))
+    }
+}
+
+/// Witness signatures.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WitnessSignatures {
@@ -107,6 +120,21 @@ impl WitnessSignatures {
             signatures: Vec::new(),
         }
     }
+}
+
+/// Incoming witness signatures.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IncomingWitnessSignatures {
+    #[serde(rename = "ops")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub ops: BTreeMap<OperationId, WitnessSignatures>,
+
+    #[serde(rename = "wits")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub witnesses: Vec<u16>,
 }
 
 /// Next event sequence numbers.

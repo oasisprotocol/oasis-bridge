@@ -339,6 +339,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             .enumerate()
             .find(|(_, pk)| Address::from_pk(pk) == ctx.tx_caller_address())
             .ok_or(Error::NotAuthorized)?;
+        let index = index as u16;
 
         // Check if sequence number is correct. This requires that all events are processed in
         // sequence by the witnesses and no events are missed.
@@ -354,24 +355,33 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             &mut store,
             &state::IN_WITNESS_SIGNATURES,
         ));
-        let mut info: types::WitnessSignatures = in_witness_signatures
+        let mut info: types::IncomingWitnessSignatures = in_witness_signatures
             .get(&storage::OwnedStoreKey::from(body.id))
-            .unwrap_or_else(|| {
-                types::WitnessSignatures::new(body.id, types::Operation::Release(body.clone()))
-            });
+            .unwrap_or_default();
 
         // Make sure it didn't already submit a signature.
-        if info.witnesses.iter().any(|i| *i as usize == index) {
+        if info.witnesses.iter().any(|i| i == &index) {
             return Err(Error::AlreadySubmittedSignature);
         }
+
+        // There can be multiple different operations proposed for the sequence (in case some
+        // witnesses are corrupted). We handle these by hashing the operation and using that as the
+        // discriminator.
+        let op = types::Operation::Release(body.clone());
+        let op_id = types::OperationId::from(&op);
+        let op_sigs = info
+            .ops
+            .entry(op_id)
+            .or_insert_with(|| types::WitnessSignatures::new(body.id, op));
         // TODO: Validate witness signature.
         // TODO: Verify signature against the remote denomination.
 
         // Store which witnesses signed in storage. Note that in the incoming case we don't need to
         // store the actual signatures as we verify them here and no longer need them.
-        info.witnesses.push(index as u16);
+        info.witnesses.push(index);
+        op_sigs.witnesses.push(index);
         // Check if there's enough signatures.
-        if (info.witnesses.len() as u64) < params.threshold {
+        if (op_sigs.witnesses.len() as u64) < params.threshold {
             // Not enough signatures yet.
             in_witness_signatures.insert(&storage::OwnedStoreKey::from(body.id), &info);
             return Ok(());
