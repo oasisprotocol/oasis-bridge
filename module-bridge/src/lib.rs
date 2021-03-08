@@ -539,3 +539,5 @@ impl<Accounts: modules::accounts::API> module::MigrationHandler for Module<Accou
 }
 
 impl<Accounts: modules::accounts::API> module::AuthHandler for Module<Accounts> {}
+
+impl<Accounts: modules::accounts::API> module::BlockHandler for Module<Accounts> {}

@@ -22,19 +22,19 @@ impl sdk::Runtime for Runtime {
                 balances: {
                     let mut balances = BTreeMap::new();
                     // Alice.
-                    balances.insert(sdk::testing::alice::address(), {
+                    balances.insert(sdk::testing::keys::alice::address(), {
                         let mut denominations = BTreeMap::new();
                         denominations.insert(Denomination::NATIVE, 1_000_000.into());
                         denominations
                     });
                     // Bob.
-                    balances.insert(sdk::testing::bob::address(), {
+                    balances.insert(sdk::testing::keys::bob::address(), {
                         let mut denominations = BTreeMap::new();
                         denominations.insert(Denomination::NATIVE, 1_000_000.into());
                         denominations
                     });
                     // Charlie.
-                    balances.insert(sdk::testing::charlie::address(), {
+                    balances.insert(sdk::testing::keys::charlie::address(), {
                         let mut denominations = BTreeMap::new();
                         denominations.insert(Denomination::NATIVE, 1_000_000.into());
                         denominations
@@ -59,7 +59,10 @@ impl sdk::Runtime for Runtime {
                         );
                         rd
                     },
-                    witnesses: vec![sdk::testing::bob::pk(), sdk::testing::charlie::pk()],
+                    witnesses: vec![
+                        sdk::testing::keys::bob::pk(),
+                        sdk::testing::keys::charlie::pk(),
+                    ],
                     threshold: 2,
                 },
             },
