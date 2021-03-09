@@ -16,6 +16,8 @@ use oasis_runtime_sdk::{
     types::{address::Address, token, transaction::CallResult},
 };
 
+#[cfg(test)]
+mod test;
 pub mod types;
 
 /// Unique module name.
