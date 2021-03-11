@@ -93,16 +93,16 @@ export interface WitnessSignatures {
     sigs?: Uint8Array[];
 }
 
-export class Client extends oasisRT.wrapper.Wrapper {
+export class Wrapper extends oasisRT.wrapper.Base {
 
-    constructor(client: oasis.OasisNodeClient, runtimeID: Uint8Array) {
-        super(client, runtimeID);
+    constructor(runtimeID: Uint8Array) {
+        super(runtimeID);
     }
 
-    callLock(body: Lock, signerInfo: oasisRT.types.SignerInfo[], fee: oasisRT.types.Fee, signers: oasisRT.transaction.AnySigner[]) { return this.call(METHOD_LOCK, body, signerInfo, fee, signers) as Promise<LockResult>; }
-    callWitness(body: Witness, signerInfo: oasisRT.types.SignerInfo[], fee: oasisRT.types.Fee, signers: oasisRT.transaction.AnySigner[]) { return this.call(METHOD_WITNESS, body, signerInfo, fee, signers) as Promise<void>; }
-    callRelease(body: Release, signerInfo: oasisRT.types.SignerInfo[], fee: oasisRT.types.Fee, signers: oasisRT.transaction.AnySigner[]) { return this.call(METHOD_RELEASE, body, signerInfo, fee, signers) as Promise<void>; }
+    callLock() { return this.call<Lock, LockResult>(METHOD_LOCK); }
+    callWitness() { return this.call<Witness, void>(METHOD_WITNESS); }
+    callRelease() { return this.call<Release, void>(METHOD_RELEASE); }
 
-    queryNextSequenceNumbers(round: oasis.types.longnum) { return this.query(round, METHOD_NEXT_SEQUENCE_NUMBERS, undefined) as Promise<NextSequenceNumbers>; }
+    queryNextSequenceNumbers() { return this.query<void, NextSequenceNumbers>(METHOD_NEXT_SEQUENCE_NUMBERS); }
 
 }
