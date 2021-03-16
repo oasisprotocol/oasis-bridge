@@ -9,7 +9,7 @@ name = "oasis-bridge-runtime"
 
 [dependencies]
 # TODO: Use a specific tag.
-oasis-runtime-sdk = { git = "https://github.com/oasisprotocol/oasis-sdk", branch = "main" }
+oasis-runtime-sdk = { git = "https://github.com/oasisprotocol/oasis-sdk", branch = "pro-wh/feature/master" }
 
 # Modules.
 oasis-module-bridge = { path = "../module-bridge" }

@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 # TODO: Use a specific tag.
-oasis-runtime-sdk = { git = "https://github.com/oasisprotocol/oasis-sdk", branch = "main" }
+oasis-runtime-sdk = { git = "https://github.com/oasisprotocol/oasis-sdk", branch = "pro-wh/feature/master" }
 
 # Third party.
 serde = { version = "1.0.118", features = ["derive"] }
