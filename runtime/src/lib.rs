@@ -41,6 +41,11 @@ impl sdk::Runtime for Runtime {
                     });
                     balances
                 },
+                total_supplies: {
+                    let mut total_supplies = BTreeMap::new();
+                    total_supplies.insert(Denomination::NATIVE, 3_000_000.into());
+                    total_supplies
+                },
                 ..Default::default()
             },
             oasis_module_bridge::Genesis {
