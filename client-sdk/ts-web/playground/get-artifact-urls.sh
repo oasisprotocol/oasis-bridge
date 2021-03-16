@@ -2,7 +2,7 @@
 
 # Use this on a build number, e.g.
 #
-#     ./get-artifact-urls.sh 3935
+#     ./get-artifact-urls.sh 3935 >consts.sh
 #
 # to get the artifact URLs for sample-run-network.sh without having to do a
 # ton of right-clicking.

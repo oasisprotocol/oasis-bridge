@@ -41,7 +41,7 @@ static_resources:
         - endpoint:
             address:
               pipe:
-                path: node/internal.sock
+                path: /tmp/oasis-net-runner-bridge/net-runner/network/client-0/internal.sock
     http2_protocol_options: {}
   - name: dev_static
     connect_timeout: 0.25s

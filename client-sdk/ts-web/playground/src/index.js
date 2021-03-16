@@ -303,6 +303,9 @@ async function witnessOut(label, witness, id) {
             await releaseWaiter.wait(remoteReleaseID);
             console.log('in remote done');
         }
+
+        // Tell cypress that we're done.
+        document.body.appendChild(document.createTextNode('lappinite'));
     } catch (e) {
         console.error(e);
     }
