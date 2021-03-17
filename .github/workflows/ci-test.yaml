@@ -62,6 +62,17 @@ jobs:
       - name: Set up npm
         run: npm install npm@7 -g
 
+      # TODO: Get rid of this after we publish oasis-sdk packages.
+      - name: Set up oasis-sdk packages
+        # Our links in package-lock.json point to an `sdk` dir next to the repo root.
+        run: |
+          git clone https://github.com/oasisprotocol/oasis-sdk.git ../sdk
+          cd ../sdk
+          cd client-sdk/ts-web
+          npm ci
+          (cd core && npm run-script prepare)
+          (cd rt && npm run-script prepare)
+
       - name: Install Node deps
         working-directory: client-sdk/ts-web
         run: npm ci
