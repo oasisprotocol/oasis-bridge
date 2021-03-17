@@ -1,5 +1,5 @@
-BUILD_NUMBER=3935
-OASIS_NODE_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/3935/jobs/f3463f8c-2d2c-4381-a115-5d1f34b9ff44/artifacts/b4fa89d0-2712-4591-a5d5-e70efea9db3a
-OASIS_NET_RUNNER_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/3935/jobs/f3463f8c-2d2c-4381-a115-5d1f34b9ff44/artifacts/bdfa13dc-d111-4860-9823-a53cea0cb218
-OASIS_CORE_RUNTIME_LOADER_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/3935/jobs/0de25057-fa8c-46be-8fe1-bec554e6bdf3/artifacts/466a2eaa-79be-41a0-9430-0e81c86bc3dd
-SIMPLE_KEYMANAGER_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/3935/jobs/9fb4239c-3421-41a1-b44e-3dd7303b6755/artifacts/8d1b5c41-d0bc-481c-a1e8-116eb7aed574
+BUILD_NUMBER=4079
+OASIS_NODE_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/4079/jobs/5af38a50-1f03-4b8a-a715-6fa3ef132704/artifacts/13c93842-c42b-488d-b8f3-afec6d69508c
+OASIS_NET_RUNNER_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/4079/jobs/5af38a50-1f03-4b8a-a715-6fa3ef132704/artifacts/072c15dd-1851-46f0-93f1-e98d46325dc2
+OASIS_CORE_RUNTIME_LOADER_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/4079/jobs/d0e17695-ed93-4f94-988a-ca538e0a817a/artifacts/71b4fc0a-04e3-430f-b74d-e30d847c7a2c
+SIMPLE_KEYMANAGER_ARTIFACT=https://buildkite.com/organizations/oasisprotocol/pipelines/oasis-core-ci/builds/4079/jobs/19e93dde-a442-4280-8e3f-414dcc031aec/artifacts/ad7871bd-9725-4dbd-a02b-80107dbf1ee5
