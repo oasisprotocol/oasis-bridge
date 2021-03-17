@@ -78,7 +78,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/client-sdk/ts-web"
           npm link /tmp/oasis-sdk/client-sdk/ts-web/core /tmp/oasis-sdk/client-sdk/ts-web/rt
           ls -al node_modules/@oasisprotocol # %%%
-          stat node_modules/@oasisprotocol/core/package.json # %%%
+          stat node_modules/@oasisprotocol/client/package.json # %%%
 
       - name: Install Node deps
         working-directory: client-sdk/ts-web
