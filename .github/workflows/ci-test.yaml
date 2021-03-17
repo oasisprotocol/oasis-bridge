@@ -71,11 +71,10 @@ jobs:
           cd oasis-sdk/client-sdk/ts-web
           git switch pro-wh/feature/master
           npm install
-          (cd core && npm run-script prepare && npm link)
-          (cd rt && npm run-script prepare && npm link)
+          (cd core && npm run-script prepare)
+          (cd rt && npm run-script prepare)
           cd "$GITHUB_WORKSPACE/client-sdk/ts-web"
-          npm link @oasislabs/client
-          npm link @oasislabs/client-rt
+          npm link /tmp/oasis-sdk/client-sdk/ts-web/core /tmp/oasis-sdk/client-sdk/ts-web/rt
 
       - name: Install Node deps
         working-directory: client-sdk/ts-web
