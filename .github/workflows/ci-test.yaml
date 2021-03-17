@@ -66,6 +66,7 @@ jobs:
       - name: Set up oasis-sdk packages
         working-directory: /tmp
         run: |
+          mount # %%%
           set -x
           git clone https://github.com/oasisprotocol/oasis-sdk.git
           cd oasis-sdk/client-sdk/ts-web
