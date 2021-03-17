@@ -68,6 +68,7 @@ jobs:
         run: |
           git clone https://github.com/oasisprotocol/oasis-sdk.git
           cd oasis-sdk/client-sdk/ts-web
+          git switch pro-wh/feature/master
           npm install
           (cd core && npm run-script prepare && npm link)
           (cd rt && npm run-script prepare && npm link)
