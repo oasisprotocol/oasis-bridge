@@ -80,10 +80,6 @@ jobs:
         working-directory: client-sdk/ts-web
         run: npm ci
 
-      - name: Prepare
-        working-directory: client-sdk/ts-web
-        run: npm run-script prepare
-
       - name: 'dev-server: Start'
         working-directory: client-sdk/ts-web
         run: npm run-script playground &
