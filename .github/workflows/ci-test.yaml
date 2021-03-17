@@ -73,9 +73,12 @@ jobs:
           npm install
           (cd core && npm run-script prepare)
           (cd rt && npm run-script prepare)
-          ls -al core/dist
+          ls -al core # %%%
+          ls -al core/dist # %%%
           cd "$GITHUB_WORKSPACE/client-sdk/ts-web"
           npm link /tmp/oasis-sdk/client-sdk/ts-web/core /tmp/oasis-sdk/client-sdk/ts-web/rt
+          ls -al node_modules/@oasisprotocol # %%%
+          stat node_modules/@oasisprotocol/core/package.json # %%%
 
       - name: Install Node deps
         working-directory: client-sdk/ts-web
