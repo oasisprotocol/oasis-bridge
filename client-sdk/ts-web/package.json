@@ -6,7 +6,7 @@
     ],
     "main": "dist/index.js",
     "scripts": {
-        "prepare": "tsc",
+        "prepare": "tsc --traceResolution",
         "check-playground": "cd playground && tsc -p jsconfig.json",
         "playground": "cd playground && webpack s -c webpack.config.js"
     },
