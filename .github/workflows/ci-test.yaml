@@ -72,7 +72,7 @@ jobs:
           npm install
           (cd core && npm run-script prepare && npm link)
           (cd rt && npm run-script prepare && npm link)
-          cd "$GITHUB_WORKSPACE/client/ts-web"
+          cd "$GITHUB_WORKSPACE/client-sdk/ts-web"
           npm link @oasislabs/client
           npm link @oasislabs/client-rt
 
