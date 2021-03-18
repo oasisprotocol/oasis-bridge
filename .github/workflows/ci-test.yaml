@@ -53,6 +53,9 @@ jobs:
           stat node_modules/@oasisprotocol/client/package.json # %%%
           sudo apt-get install -y strace
 
+      - name: what
+        run: strace -e t=%file stat /home/runner/work/oasis-bridge/oasis-bridge/client-sdk/ts-web/node_modules/@oasisprotocol/client
+
       - name: Install Node deps
         working-directory: client-sdk/ts-web
         run: |
