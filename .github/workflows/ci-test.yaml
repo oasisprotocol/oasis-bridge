@@ -53,4 +53,6 @@ jobs:
         run: |
           exec 2>&1 # %%%
           set -x # %%%
-          npm install
+          npm install --ignore-scripts
+          ls -al node_modules/@oasisprotocol # %%%
+          npm run-script prepare # %%%
