@@ -45,16 +45,9 @@ jobs:
           npm install
           (cd core && npm run-script prepare)
           (cd rt && npm run-script prepare)
-          ls -al core # %%%
-          ls -al core/dist # %%%
           cd "$GITHUB_WORKSPACE/client-sdk/ts-web"
           npm link /tmp/oasis-sdk/client-sdk/ts-web/core /tmp/oasis-sdk/client-sdk/ts-web/rt
-          ls -al node_modules/@oasisprotocol # %%%
-          stat node_modules/@oasisprotocol/client/package.json # %%%
           sudo apt-get install -y strace
-
-      - name: what
-        run: strace -e t=%file stat /home/runner/work/oasis-bridge/oasis-bridge/client-sdk/ts-web/node_modules/@oasisprotocol/client
 
       - name: Install Node deps
         working-directory: client-sdk/ts-web
@@ -62,4 +55,5 @@ jobs:
           exec 2>&1 # %%%
           set -x # %%%
           npm ci --ignore-scripts
-          strace -f -e t=%file npm run-script prepare # %%%
+          ls -al node_modules/@oasisprotocol # %%%
+          npm run-script prepare # %%%
