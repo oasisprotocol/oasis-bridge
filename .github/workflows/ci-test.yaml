@@ -57,7 +57,7 @@ jobs:
       - name: Set up Node.js LTS
         uses: actions/setup-node@v2.1.4
         with:
-          node-version: "14.x"
+          node-version: "12.x"
 
       - name: Set up npm
         run: npm install npm@7 -g
@@ -66,7 +66,6 @@ jobs:
       - name: Set up oasis-sdk packages
         working-directory: /tmp
         run: |
-          mount # %%%
           set -x
           git clone https://github.com/oasisprotocol/oasis-sdk.git
           cd oasis-sdk/client-sdk/ts-web
