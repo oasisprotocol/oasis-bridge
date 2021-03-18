@@ -37,7 +37,8 @@ jobs:
       - name: Set up oasis-sdk packages
         working-directory: /tmp
         run: |
-          set -x
+          exec 2>&1 # %%%
+          set -x # %%%
           git clone https://github.com/oasisprotocol/oasis-sdk.git
           cd oasis-sdk/client-sdk/ts-web
           git switch pro-wh/feature/master
@@ -50,16 +51,12 @@ jobs:
           npm link /tmp/oasis-sdk/client-sdk/ts-web/core /tmp/oasis-sdk/client-sdk/ts-web/rt
           ls -al node_modules/@oasisprotocol # %%%
           stat node_modules/@oasisprotocol/client/package.json # %%%
+          sudo apt-get install -y strace
 
       - name: Install Node deps
         working-directory: client-sdk/ts-web
         run: |
-          npm ci || true
-          locale # %%%
-          find . -type f -exec md5sum {} \; | sort -k2 > sum.md5 # %%%
-
-      - name: Upload # %%%
-        uses: actions/upload-artifact@v2
-        with:
-          name: sum.md5
-          path: client-sdk/ts-web/sum.md5
+          exec 2>&1 # %%%
+          set -x # %%%
+          npm ci --ignore-scripts
+          strace -f -e t=%file npm run-script prepare # %%%
