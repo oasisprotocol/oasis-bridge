@@ -17,35 +17,6 @@ on:
 
 jobs:
 
-  lint:
-    # NOTE: This name appears in GitHub's Checks API.
-    name: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-
-      - name: Unit tests with coverage
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: '0.16.0'
-          args: '-- --test-threads 1'
-        env:
-          # Required as tarpaulin doesn't honor .cargo/config.
-          RUSTFLAGS: -C target-feature=+aes,+ssse3
-
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1.2.1
-
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v1
-        with:
-          name: code-coverage-report
-          path: cobertura.xml
-
   e2e-ts-web:
     # NOTE: This name appears in GitHub's Checks API.
     name: e2e-ts-web
@@ -92,38 +63,3 @@ jobs:
         with:
           name: sum.md5
           path: client-sdk/ts-web/sum.md5
-
-      - run: 'false' # %%%
-
-      - name: 'dev-server: Start'
-        working-directory: client-sdk/ts-web
-        run: npm run-script playground &
-
-      - name: 'proxy: Install Envoy'
-        # https://www.getenvoy.io/install/envoy/ubuntu/
-        run: |
-          curl -sL 'https://getenvoy.io/gpg' | sudo apt-key add -
-          sudo add-apt-repository "deb [arch=amd64] https://dl.bintray.com/tetrate/getenvoy-deb $(lsb_release -cs) stable"
-          sudo apt-get update && sudo apt-get install -y getenvoy-envoy
-
-      - name: 'proxy: Start'
-        working-directory: client-sdk/ts-web/playground
-        run: ./sample-run-envoy.sh &
-
-      - name: 'testnet: Download artifacts'
-        working-directory: client-sdk/ts-web/playground
-        run: ./download-artifacts.sh
-
-      - name: 'testnet: Start'
-        working-directory: client-sdk/ts-web/playground
-        run: ./sample-run-network.sh &
-
-      - name: 'testnet: Wait for node socket'
-        run: |
-          while [ ! -e /tmp/oasis-net-runner-bridge/net-runner/network/client-0/internal.sock ]; do
-            sleep 1
-          done
-
-      - name: Cypress run
-        working-directory: client-sdk/ts-web
-        run: npx -c 'cypress run'
