@@ -84,6 +84,7 @@ jobs:
         working-directory: client-sdk/ts-web
         run: |
           npm ci || true
+          locale # %%%
           find . -type f -exec md5sum {} \; | sort -k2 > sum.md5 # %%%
 
       - name: Upload # %%%
