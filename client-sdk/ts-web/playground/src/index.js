@@ -4,6 +4,7 @@ import * as oasis from '@oasisprotocol/client';
 import * as oasisRT from '@oasisprotocol/client-rt';
 
 import * as oasisBridge from './../..';
+import * as shared from './shared';
 
 const BRIDGE_RUNTIME_ID = oasis.misc.fromHex('8000000000000000000000000000000000000000000000000000000000000000');
 
@@ -303,6 +304,9 @@ async function witnessOut(label, witness, id) {
             await releaseWaiter.wait(remoteReleaseID);
             console.log('in remote done');
         }
+
+        // Tell cypress that we're done.
+        document.body.appendChild(document.createTextNode(shared.CYPRESS_DONE_STRING));
     } catch (e) {
         console.error(e);
     }
