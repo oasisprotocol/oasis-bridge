@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"sync"
@@ -48,8 +49,33 @@ func getEnvVarOrExit(name string) string {
 
 // TODO: Move these somewhere bridge-module specific.
 
+const remoteAddressSize = 20
+
+// RemoteAddress is a remote address.
+type RemoteAddress [remoteAddressSize]byte
+
+// String returns a string representation of the remote address.
+func (ra RemoteAddress) String() string {
+	return hex.EncodeToString(ra[:])
+}
+
+// NewRemoteAddressFromHex creates a new remote address from a hex-encoded string or panics.
+func NewRemoteAddressFromHex(text string) RemoteAddress {
+	b, err := hex.DecodeString(text)
+	if err != nil {
+		panic(err)
+	}
+	if len(b) != remoteAddressSize {
+		panic(fmt.Errorf("malformed address"))
+	}
+	var ra RemoteAddress
+	copy(ra[:], b)
+	return ra
+}
+
 // Lock is the body of the Lock call.
 type Lock struct {
+	Target RemoteAddress   `json:"target"`
 	Amount types.BaseUnits `json:"amount"`
 }
 
@@ -67,7 +93,7 @@ type Witness struct {
 // Release is the body of a Release call.
 type Release struct {
 	ID     uint64          `json:"id"`
-	Owner  types.Address   `json:"owner"`
+	Target types.Address   `json:"target"`
 	Amount types.BaseUnits `json:"amount"`
 }
 
@@ -75,6 +101,7 @@ type Release struct {
 type LockEvent struct {
 	ID     uint64          `json:"id"`
 	Owner  types.Address   `json:"owner"`
+	Target RemoteAddress   `json:"target"`
 	Amount types.BaseUnits `json:"amount"`
 }
 
@@ -84,7 +111,7 @@ var LockEventKey = sdk.NewEventKey("bridge", 1)
 // ReleaseEvent is the release event.
 type ReleaseEvent struct {
 	ID     uint64          `json:"id"`
-	Owner  types.Address   `json:"owner"`
+	Target types.Address   `json:"target"`
 	Amount types.BaseUnits `json:"amount"`
 }
 
@@ -157,6 +184,7 @@ func user(
 	// Submit Lock.
 	logger.Info("submitting lock transaction")
 	tx := types.NewTransaction(nil, "bridge.Lock", Lock{
+		Target: NewRemoteAddressFromHex("0000000000000000000000000000000000000000"),
 		Amount: types.NewBaseUnits(*quantity.NewFromUint64(10), types.NativeDenomination),
 	})
 	tx.AppendSignerInfo(signer.Public(), nonce)
@@ -331,6 +359,7 @@ WitnessAnEvent:
 					logger.Debug("got lock event",
 						"id", lockEv.ID,
 						"owner", lockEv.Owner,
+						"target", lockEv.Target,
 						"amount", lockEv.Amount,
 					)
 
@@ -416,7 +445,7 @@ WitnessAnEvent:
 
 	tx := types.NewTransaction(nil, "bridge.Release", Release{
 		ID:     sequences.Incoming,
-		Owner:  lastUser,
+		Target: lastUser,
 		Amount: types.NewBaseUnits(*quantity.NewFromUint64(10), types.NativeDenomination),
 	})
 	tx.AppendSignerInfo(signer.Public(), nonce)
@@ -456,7 +485,7 @@ WitnessAnEvent:
 
 	tx = types.NewTransaction(nil, "bridge.Release", Release{
 		ID:     sequences.Incoming + 1,
-		Owner:  lastUser,
+		Target: lastUser,
 		Amount: types.NewBaseUnits(*quantity.NewFromUint64(10), types.Denomination("oETH")),
 	})
 	tx.AppendSignerInfo(signer.Public(), nonce)

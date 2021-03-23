@@ -81,12 +81,13 @@ pub enum Event {
     Lock {
         id: u64,
         owner: Address,
+        target: types::RemoteAddress,
         amount: token::BaseUnits,
     },
 
     Release {
         id: u64,
-        owner: Address,
+        target: Address,
         amount: token::BaseUnits,
     },
 
@@ -251,6 +252,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
 
         // Create an entry in outgoing witness signatures map.
         let amount = body.amount.clone();
+        let target = body.target;
         let mut out_witness_signatures = storage::TypedStore::new(storage::PrefixStore::new(
             &mut store,
             &state::OUT_WITNESS_SIGNATURES,
@@ -270,6 +272,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         ctx.emit_event(Event::Lock {
             id,
             owner: ctx.tx_caller_address(),
+            target,
             amount,
         });
 
@@ -403,12 +406,12 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         }
 
         // Transfer funds from bridge-owned account into user's account.
-        Accounts::transfer(ctx, *ADDRESS_LOCKED_FUNDS, body.owner, &body.amount)?;
+        Accounts::transfer(ctx, *ADDRESS_LOCKED_FUNDS, body.target, &body.amount)?;
 
         // Emit release event.
         ctx.emit_event(Event::Release {
             id: body.id,
-            owner: body.owner,
+            target: body.target,
             amount: body.amount,
         });
 
