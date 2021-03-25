@@ -155,6 +155,13 @@ async function witnessOut(label, witness, id) {
 
 (async function () {
     try {
+        // Wait for ready.
+        console.log('waiting for node to be ready');
+        const waitStart = Date.now();
+        await nic.nodeControllerWaitReady();
+        const waitEnd = Date.now();
+        console.log(`ready ${waitEnd - waitStart} ms`);
+
         const alice = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: alice')), 'this key is not important');
         const bob = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: bob')), 'this key is not important');
         const charlie = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: charlie')), 'this key is not important');
