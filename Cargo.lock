@@ -62,9 +62,9 @@ checksum = "2c0df63cb2955042487fad3aefd2c6e3ae7389ac5dc1beb28921de0b69f779d4"
 
 [[package]]
 name = "arbitrary"
-version = "0.4.7"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db55d72333851e17d572bec876e390cd3b11eb1ef53ae821dd9f3b653d2b4569"
+checksum = "698b65a961a9d730fb45b6b0327e20207810c9f61ee421b082b27ba003f49e2b"
 dependencies = [
  "derive_arbitrary",
 ]
@@ -163,9 +163,9 @@ checksum = "2e8c087f005730276d1096a652e92a8bacee2e2472bcc9715a74d2bec38b5820"
 
 [[package]]
 name = "byteorder"
-version = "1.4.2"
+version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae44d1a3d5a19df61dd0c8beb138458ac2a53a7ac09eba97d55592540004306b"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cc"
@@ -371,9 +371,9 @@ dependencies = [
 
 [[package]]
 name = "derive_arbitrary"
-version = "0.4.7"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1a012b5e473dc912f0db0546a1c9c6a194ce8494feb66fa0237160926f9e0e6"
+checksum = "df89dd0d075dea5cc5fdd6d5df6b8a61172a710b3efac1d6bdb9dd8b78f82c1a"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.7",
@@ -530,9 +530,9 @@ dependencies = [
 
 [[package]]
 name = "honggfuzz"
-version = "0.5.52"
+version = "0.5.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ead88897bcad1c396806d6ccba260a0363e11da997472e9e19ab9889969083a2"
+checksum = "bea09577d948a98a5f59b7c891e274c4fb35ad52f67782b3d0cb53b9c05301f1"
 dependencies = [
  "arbitrary",
  "lazy_static",
@@ -683,7 +683,7 @@ dependencies = [
 [[package]]
 name = "oasis-core-runtime"
 version = "0.3.0-alpha"
-source = "git+https://github.com/oasisprotocol/oasis-core?branch=master#73ad83a8a8a6b955a3b22b00b7a596c442f9001f"
+source = "git+https://github.com/oasisprotocol/oasis-core?tag=v21.0.1#8bbfd8b729a8ea9a0bf1b62f632bd840684d3a82"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -747,7 +747,7 @@ dependencies = [
 [[package]]
 name = "oasis-runtime-sdk"
 version = "0.1.0"
-source = "git+https://github.com/oasisprotocol/oasis-sdk?branch=main#05f02ca546ae7b211fd7c7f7951a4a7f43e33fb2"
+source = "git+https://github.com/oasisprotocol/oasis-sdk?branch=main#fcc0b96021d8b54c50f48b39e520ff25e8a2464f"
 dependencies = [
  "anyhow",
  "base64",
