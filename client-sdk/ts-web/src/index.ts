@@ -28,12 +28,14 @@ export const EVENT_WITNESSES_SIGNED_CODE = 3;
  * Lock call.
  */
 export interface Lock {
+    target: Uint8Array;
     amount: oasisRT.types.BaseUnits;
 }
 
 export interface LockEvent {
     id: oasis.types.longnum;
     owner: Uint8Array;
+    target: Uint8Array;
     amount: oasisRT.types.BaseUnits;
 }
 
@@ -65,13 +67,13 @@ export interface Operation {
  */
 export interface Release {
     id: oasis.types.longnum;
-    owner: Uint8Array;
+    target: Uint8Array;
     amount: oasisRT.types.BaseUnits;
 }
 
 export interface ReleaseEvent {
     id: oasis.types.longnum;
-    owner: Uint8Array;
+    target: Uint8Array;
     amount: oasisRT.types.BaseUnits;
 }
 

@@ -103,6 +103,7 @@ fn test_outgoing_basic() {
         call: transaction::Call {
             method: "bridge.Lock".to_owned(),
             body: cbor::to_value(Lock {
+                target: "0000000000000000000000000000000000000000".into(),
                 amount: BaseUnits::new(1_000.into(), Denomination::NATIVE),
             }),
         },
@@ -283,7 +284,7 @@ fn test_incoming_basic() {
             method: "bridge.Release".to_owned(),
             body: cbor::to_value(Release {
                 id: 0,
-                owner: keys::alice::address(),
+                target: keys::alice::address(),
                 amount: BaseUnits::new(1_000.into(), "oETH".into()),
             }),
         },
@@ -335,7 +336,7 @@ fn test_incoming_basic() {
             method: "bridge.Release".to_owned(),
             body: cbor::to_value(Release {
                 id: 0,
-                owner: keys::alice::address(),
+                target: keys::alice::address(),
                 amount: BaseUnits::new(1_000.into(), "oETH".into()),
             }),
         },
@@ -403,7 +404,7 @@ fn test_incoming_fail_invalid_sequence() {
             method: "bridge.Release".to_owned(),
             body: cbor::to_value(Release {
                 id: 1, // Invalid sequence as it should be 0.
-                owner: keys::alice::address(),
+                target: keys::alice::address(),
                 amount: BaseUnits::new(1_000.into(), "oETH".into()),
             }),
         },
@@ -439,7 +440,7 @@ fn test_incoming_fail_divergence() {
             method: "bridge.Release".to_owned(),
             body: cbor::to_value(Release {
                 id: 0,
-                owner: keys::alice::address(),
+                target: keys::alice::address(),
                 amount: BaseUnits::new(1_000.into(), "oETH".into()),
             }),
         },
@@ -465,7 +466,7 @@ fn test_incoming_fail_divergence() {
             method: "bridge.Release".to_owned(),
             body: cbor::to_value(Release {
                 id: 0,
-                owner: keys::alice::address(),
+                target: keys::alice::address(),
                 amount: BaseUnits::new(2_000.into(), "oETH".into()),
             }),
         },
@@ -513,7 +514,7 @@ fn test_incoming_fail_divergence() {
             method: "bridge.Release".to_owned(),
             body: cbor::to_value(Release {
                 id: 0,
-                owner: keys::alice::address(),
+                target: keys::alice::address(),
                 amount: BaseUnits::new(1_000.into(), "oETH".into()),
             }),
         },

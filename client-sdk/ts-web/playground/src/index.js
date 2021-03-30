@@ -76,9 +76,12 @@ async function userOut(label, user, amount) {
     console.log('out user', label, 'nonce', nonce);
     const siUser = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: user.public()}, nonce});
 
+    const target = oasis.misc.fromHex('0000000000000000000000000000000000000000');
+
     console.log('out user', label, 'locking', amount);
     const tw = bridgeWrapper.callLock()
         .setBody({
+            target,
             amount,
         })
         .setSignerInfo([siUser])
@@ -96,9 +99,9 @@ async function userOut(label, user, amount) {
  * @param {oasis.signature.ContextSigner} witness
  * @param {oasis.types.longnum} id
  * @param {oasisRT.types.BaseUnits} amount
- * @param {Uint8Array} owner
+ * @param {Uint8Array} target
  */
-async function witnessIn(label, witness, id, amount, owner) {
+async function witnessIn(label, witness, id, amount, target) {
     console.log('in witness', label, 'getting nonce');
     const nonce = await accountsWrapper.queryNonce()
         .setArgs({
@@ -108,12 +111,12 @@ async function witnessIn(label, witness, id, amount, owner) {
     console.log('in witness', label, 'nonce', nonce);
     const siWitness = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: witness.public()}, nonce});
 
-    console.log('in witness', label, 'releasing', id, amount, owner);
+    console.log('in witness', label, 'releasing', id, amount, target);
     const tw = bridgeWrapper.callRelease()
         .setBody({
             id,
             amount,
-            owner,
+            target,
         })
         .setSignerInfo([siWitness])
         .setFeeAmount(FEE_FREE)
