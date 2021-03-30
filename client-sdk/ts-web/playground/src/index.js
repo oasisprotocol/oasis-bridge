@@ -64,8 +64,9 @@ const bridgeWrapper = new oasisBridge.Wrapper(BRIDGE_RUNTIME_ID);
  * @param {string} label
  * @param {oasis.signature.ContextSigner} user
  * @param {oasisRT.types.BaseUnits} amount
+ * @param {string} consensusChainContext
  */
-async function userOut(label, user, amount) {
+async function userOut(label, user, amount, consensusChainContext) {
     console.log('out user', label, 'getting nonce');
     const nonce = await accountsWrapper.queryNonce()
         .setArgs({
@@ -86,7 +87,7 @@ async function userOut(label, user, amount) {
         .setSignerInfo([siUser])
         .setFeeAmount(FEE_FREE)
         .setFeeGas(0n);
-    await tw.sign([user]);
+    await tw.sign([user], consensusChainContext);
     const lockResult = await tw.submit(nic);
     console.log('out user', label, 'lock result', lockResult);
 
@@ -99,8 +100,9 @@ async function userOut(label, user, amount) {
  * @param {oasis.types.longnum} id
  * @param {oasisRT.types.BaseUnits} amount
  * @param {Uint8Array} target
+ * @param {string} consensusChainContext
  */
-async function witnessIn(label, witness, id, amount, target) {
+async function witnessIn(label, witness, id, amount, target, consensusChainContext) {
     console.log('in witness', label, 'getting nonce');
     const nonce = await accountsWrapper.queryNonce()
         .setArgs({
@@ -120,7 +122,7 @@ async function witnessIn(label, witness, id, amount, target) {
         .setSignerInfo([siWitness])
         .setFeeAmount(FEE_FREE)
         .setFeeGas(0n);
-    await tw.sign([witness]);
+    await tw.sign([witness], consensusChainContext);
     await tw.submit(nic);
     console.log('in witness', label, 'release done');
 }
@@ -129,8 +131,9 @@ async function witnessIn(label, witness, id, amount, target) {
  * @param {string} label
  * @param {oasis.signature.ContextSigner} witness
  * @param {oasis.types.longnum} id
+ * @param {string} consensusChainContext
  */
-async function witnessOut(label, witness, id) {
+async function witnessOut(label, witness, id, consensusChainContext) {
     console.log('out witness', label, 'getting nonce');
     const nonce = await accountsWrapper.queryNonce()
         .setArgs({
@@ -150,7 +153,7 @@ async function witnessOut(label, witness, id) {
         .setSignerInfo([siWitness])
         .setFeeAmount(FEE_FREE)
         .setFeeGas(0n);
-    await tw.sign([witness]);
+    await tw.sign([witness], consensusChainContext);
     await tw.submit(nic);
     console.log('out witness', label, 'witness done');
 }
@@ -163,9 +166,12 @@ export const playground = (async function () {
     const waitEnd = Date.now();
     console.log(`ready ${waitEnd - waitStart} ms`);
 
-    const alice = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: alice')), 'this key is not important');
-    const bob = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: bob')), 'this key is not important');
-    const charlie = oasis.signature.EllipticSigner.fromSecret(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: charlie')), 'this key is not important');
+    // Get consensus chain context.
+    const consensusChainContext = await nic.consensusGetChainContext();
+
+    const alice = oasis.signature.NaclSigner.fromSeed(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: alice')), 'this key is not important');
+    const bob = oasis.signature.NaclSigner.fromSeed(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: bob')), 'this key is not important');
+    const charlie = oasis.signature.NaclSigner.fromSeed(await oasis.hash.hash(oasis.misc.fromString('oasis-runtime-sdk/test-keys: charlie')), 'this key is not important');
 
     const aliceAddress = await oasis.staking.addressFromPublicKey(alice.public());
 
@@ -275,12 +281,12 @@ export const playground = (async function () {
     // Out flow.
     {
         console.log('out user locking');
-        const id = await userOut('alice', new oasis.signature.BlindContextSigner(alice), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
+        const id = await userOut('alice', new oasis.signature.BlindContextSigner(alice), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION], consensusChainContext);
         console.log('out waiting for lock event');
         await lockWaiter.wait(id);
         console.log('out witnesses signing');
-        await witnessOut('bob', new oasis.signature.BlindContextSigner(bob), id);
-        await witnessOut('charlie', new oasis.signature.BlindContextSigner(charlie), id);
+        await witnessOut('bob', new oasis.signature.BlindContextSigner(bob), id, consensusChainContext);
+        await witnessOut('charlie', new oasis.signature.BlindContextSigner(charlie), id, consensusChainContext);
         console.log('out waiting for witnesses signed event');
         await witnessesSignedWaiter.wait(id);
         console.log('out done');
@@ -297,8 +303,8 @@ export const playground = (async function () {
         // Local denomination.
         const localAmount = /** @type {oasisRT.types.BaseUnits} */ ([oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION]);
         console.log('in local witnesses signing');
-        await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), localReleaseID, localAmount, aliceAddress);
-        await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), localReleaseID, localAmount, aliceAddress);
+        await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), localReleaseID, localAmount, aliceAddress, consensusChainContext);
+        await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), localReleaseID, localAmount, aliceAddress, consensusChainContext);
         console.log('in local waiting for release event');
         await releaseWaiter.wait(localReleaseID);
         console.log('in local done');
@@ -306,8 +312,8 @@ export const playground = (async function () {
         // Remote denomination.
         const remoteAmount = /** @type {oasisRT.types.BaseUnits} */ ([oasis.quantity.fromBigInt(10n), oasis.misc.fromString('oETH')]);
         console.log('in remote witnesses signing');
-        await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), remoteReleaseID, remoteAmount, aliceAddress);
-        await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), remoteReleaseID, remoteAmount, aliceAddress);
+        await witnessIn('bob', new oasis.signature.BlindContextSigner(bob), remoteReleaseID, remoteAmount, aliceAddress, consensusChainContext);
+        await witnessIn('charlie', new oasis.signature.BlindContextSigner(charlie), remoteReleaseID, remoteAmount, aliceAddress, consensusChainContext);
         console.log('in remote waiting for release event');
         await releaseWaiter.wait(remoteReleaseID);
         console.log('in remote done');
