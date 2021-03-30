@@ -153,6 +153,7 @@ func user(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	rc *Client,
+	chainContext signature.Context,
 	signer signature.Signer,
 ) {
 	logger := logger.With("side", "user")
@@ -189,7 +190,7 @@ func user(
 	})
 	tx.AppendSignerInfo(signer.Public(), nonce)
 	tb := tx.PrepareForSigning()
-	if err = tb.AppendSign(signer); err != nil {
+	if err = tb.AppendSign(chainContext, signer); err != nil {
 		logger.Error("failed to sign lock transaction",
 			"err", err,
 		)
@@ -293,6 +294,7 @@ func witness(
 	wg *sync.WaitGroup,
 	releaseWg *sync.WaitGroup,
 	rc *Client,
+	chainContext signature.Context,
 	signer signature.Signer,
 ) {
 	logger := logger.With("side", "witness")
@@ -396,7 +398,7 @@ WitnessAnEvent:
 				})
 				tx.AppendSignerInfo(signer.Public(), nonce)
 				tb := tx.PrepareForSigning()
-				if err = tb.AppendSign(signer); err != nil {
+				if err = tb.AppendSign(chainContext, signer); err != nil {
 					logger.Error("failed to sign witness transaction",
 						"err", err,
 					)
@@ -450,7 +452,7 @@ WitnessAnEvent:
 	})
 	tx.AppendSignerInfo(signer.Public(), nonce)
 	tb := tx.PrepareForSigning()
-	if err = tb.AppendSign(signer); err != nil {
+	if err = tb.AppendSign(chainContext, signer); err != nil {
 		logger.Error("failed to sign release transaction",
 			"err", err,
 		)
@@ -490,7 +492,7 @@ WitnessAnEvent:
 	})
 	tx.AppendSignerInfo(signer.Public(), nonce)
 	tb = tx.PrepareForSigning()
-	if err = tb.AppendSign(signer); err != nil {
+	if err = tb.AppendSign(chainContext, signer); err != nil {
 		logger.Error("failed to sign release transaction",
 			"err", err,
 		)
@@ -545,17 +547,25 @@ func main() {
 		Accounts:      accounts.NewV1(c),
 	}
 
+	ctx := context.Background()
+	info, err := rc.GetInfo(ctx)
+	if err != nil {
+		logger.Error("GetInfo failed",
+			"err", err,
+		)
+		os.Exit(1)
+	}
+
 	// Start witness and user.
 	var wg, releaseWg sync.WaitGroup
 	wg.Add(3)        // 2 witnesses, 1 user
 	releaseWg.Add(2) // 2 witnesses
-	ctx := context.Background()
 
 	// Start two witnesses.
-	go witness(ctx, &wg, &releaseWg, rc, testing.Bob.Signer)
-	go witness(ctx, &wg, &releaseWg, rc, testing.Charlie.Signer)
+	go witness(ctx, &wg, &releaseWg, rc, info.ChainContext, testing.Bob.Signer)
+	go witness(ctx, &wg, &releaseWg, rc, info.ChainContext, testing.Charlie.Signer)
 	// Start one user.
-	go user(ctx, &wg, rc, testing.Alice.Signer)
+	go user(ctx, &wg, rc, info.ChainContext, testing.Alice.Signer)
 
 	wg.Wait()
 
