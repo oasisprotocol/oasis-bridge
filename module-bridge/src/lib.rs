@@ -430,6 +430,10 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             outgoing: store.get(state::NEXT_OUT_SEQUENCE).unwrap_or_default(),
         })
     }
+
+    fn query_parameters(ctx: &mut DispatchContext, _args: ()) -> Result<Parameters, Error> {
+        Ok(Self::params(ctx.runtime_state()))
+    }
 }
 
 impl<Accounts: modules::accounts::API> Module<Accounts> {
@@ -488,6 +492,15 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             ctx, args,
         )?))
     }
+
+    fn _query_parameters_handler(
+        _mi: &QueryMethodInfo,
+        ctx: &mut DispatchContext,
+        args: cbor::Value,
+    ) -> Result<cbor::Value, error::RuntimeError> {
+        let args = cbor::from_value(args).map_err(|_| Error::InvalidArgument)?;
+        Ok(cbor::to_value(&Self::query_parameters(ctx, args)?))
+    }
 }
 
 impl<Accounts: modules::accounts::API> module::Module for Module<Accounts> {
@@ -517,6 +530,10 @@ impl<Accounts: modules::accounts::API> module::MethodRegistrationHandler for Mod
         methods.register_query(module::QueryMethodInfo {
             name: "bridge.NextSequenceNumbers",
             handler: Self::_query_next_sequence_numbers_handler,
+        });
+        methods.register_query(module::QueryMethodInfo {
+            name: "bridge.Parameters",
+            handler: Self::_query_parameters_handler,
         });
     }
 }
