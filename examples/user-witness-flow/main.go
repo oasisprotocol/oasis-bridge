@@ -141,6 +141,29 @@ type NextSequenceNumbers struct {
 	Outgoing uint64 `json:"out"`
 }
 
+// RemoteDenomination is a remote denomination.
+type RemoteDenomination []byte
+
+// String returns a string representation of a remote denomination.
+func (rd RemoteDenomination) String() string {
+	return hex.EncodeToString([]byte(rd))
+}
+
+// Parameters are the bridge module parameters.
+type Parameters struct {
+	// Witnesses is a list of authorized witness public keys.
+	Witnesses []types.PublicKey `json:"witnesses"`
+
+	// Threshold is the number of witnesses that needs to sign off.
+	Threshold uint64 `json:"threshold"`
+
+	// LocalDenominations are the denominations local to this side of the bridge.
+	LocalDenominations []types.Denomination `json:"local_denominations"`
+
+	// RemoteDenominations are the denominations that exist on the remote side of the bridge.
+	RemoteDenominations map[types.Denomination]RemoteDenomination `json:"remote_denominations"`
+}
+
 // Client is a bridge runtime client.
 type Client struct {
 	client.RuntimeClient
@@ -286,6 +309,33 @@ func showBalances(ctx context.Context, rc *Client, address types.Address) {
 		fmt.Printf("%s: %s\n", denom, balance)
 	}
 	fmt.Printf("\n")
+}
+
+func showParameters(ctx context.Context, rc *Client) {
+	// TODO: Move these to bridge-specific helpers.
+	var params Parameters
+	err := rc.Query(ctx, client.RoundLatest, "bridge.Parameters", nil, &params)
+	if err != nil {
+		logger.Error("failed to query bridge parameters",
+			"err", err,
+		)
+		return
+	}
+
+	fmt.Printf("=== Bridge parameters ===\n")
+	fmt.Printf("Witnesses:\n")
+	for _, w := range params.Witnesses {
+		fmt.Printf("  - %s\n", w)
+	}
+	fmt.Printf("Threshold: %d\n", params.Threshold)
+	fmt.Printf("Local denominations:\n")
+	for _, d := range params.LocalDenominations {
+		fmt.Printf("  - %s\n", d)
+	}
+	fmt.Printf("Remote denominations:\n")
+	for local, remote := range params.RemoteDenominations {
+		fmt.Printf("  - %s (%s)\n", local, remote)
+	}
 }
 
 // witness is an example witness flow.
@@ -571,6 +621,8 @@ func main() {
 
 	// Show closing balances.
 	showBalances(ctx, rc, testing.Alice.Address)
+	// Show runtime parameters.
+	showParameters(ctx, rc)
 
 	logger.Info("all done")
 }

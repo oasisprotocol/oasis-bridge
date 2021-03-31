@@ -58,35 +58,39 @@ fn init_accounts(ctx: &mut DispatchContext) {
     );
 }
 
-fn init_bridge(ctx: &mut DispatchContext) {
+fn init_bridge(ctx: &mut DispatchContext) -> Parameters {
     init_bridge_ex(ctx, vec![keys::bob::pk(), keys::charlie::pk()])
 }
 
-fn init_bridge_ex(ctx: &mut DispatchContext, witnesses: Vec<PublicKey>) {
+fn init_bridge_ex(ctx: &mut DispatchContext, witnesses: Vec<PublicKey>) -> Parameters {
+    let parameters = Parameters {
+        local_denominations: {
+            let mut ld = BTreeSet::new();
+            ld.insert(Denomination::NATIVE);
+            ld
+        },
+        remote_denominations: {
+            let mut rd = BTreeMap::new();
+            rd.insert(
+                "oETH".into(),
+                "0000000000000000000000000000000000000000000000000000000000000000".into(),
+            );
+            rd
+        },
+        witnesses,
+        threshold: 2,
+    };
+
     Bridge::init_or_migrate(
         ctx,
         &mut core::types::Metadata::default(),
         &Genesis {
-            parameters: Parameters {
-                local_denominations: {
-                    let mut ld = BTreeSet::new();
-                    ld.insert(Denomination::NATIVE);
-                    ld
-                },
-                remote_denominations: {
-                    let mut rd = BTreeMap::new();
-                    rd.insert(
-                        "oETH".into(),
-                        "0000000000000000000000000000000000000000000000000000000000000000".into(),
-                    );
-                    rd
-                },
-                witnesses,
-                threshold: 2,
-            },
+            parameters: parameters.clone(),
             ..Default::default()
         },
     );
+
+    parameters
 }
 
 #[test]
@@ -564,5 +568,29 @@ fn test_incoming_fail_divergence() {
         bals.balances.len(),
         1,
         "there should be a single denomination"
+    );
+}
+
+#[test]
+fn test_query_parameters() {
+    let mut mock = mock::Mock::default();
+    let mut ctx = mock.create_ctx();
+
+    init_accounts(&mut ctx);
+    let genesis_params = init_bridge(&mut ctx);
+
+    let params = Bridge::query_parameters(&mut ctx, ()).expect("parameters query should succeed");
+    // XXX: Compare params directly once oasis-sdk#68 is merged and version is bumped.
+    assert_eq!(
+        params.threshold, genesis_params.threshold,
+        "parameter query should return correct results"
+    );
+    assert_eq!(
+        params.local_denominations, genesis_params.local_denominations,
+        "parameter query should return correct results"
+    );
+    assert_eq!(
+        params.remote_denominations, genesis_params.remote_denominations,
+        "parameter query should return correct results"
     );
 }
