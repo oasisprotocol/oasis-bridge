@@ -747,7 +747,7 @@ dependencies = [
 [[package]]
 name = "oasis-runtime-sdk"
 version = "0.1.0"
-source = "git+https://github.com/oasisprotocol/oasis-sdk?branch=main#fcc0b96021d8b54c50f48b39e520ff25e8a2464f"
+source = "git+https://github.com/oasisprotocol/oasis-sdk?branch=main#4de788c1c6f746a8f2a47cf0ee5cbc00c9684063"
 dependencies = [
  "anyhow",
  "base64",
