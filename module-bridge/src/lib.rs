@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use oasis_runtime_sdk::{
+    self as sdk,
     context::{DispatchContext, TxContext},
     core::common::cbor,
     crypto::signature::PublicKey,
     error::{self, Error as _},
-    event,
     module::{self, CallableMethodInfo, Module as _, QueryMethodInfo},
     modules, storage,
     types::{address::Address, token, transaction::CallResult},
@@ -25,37 +25,31 @@ const MODULE_NAME: &str = "bridge";
 
 // TODO: Add a custom derive macro for easier error derivation (module/error codes).
 /// Errors emitted by the accounts module.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, sdk::Error)]
 pub enum Error {
     #[error("invalid argument")]
+    #[sdk_error(code = 1)]
     InvalidArgument,
+
     #[error("not authorized")]
+    #[sdk_error(code = 2)]
     NotAuthorized,
+
     #[error("invalid sequence number")]
+    #[sdk_error(code = 3)]
     InvalidSequenceNumber,
+
     #[error("insufficient balance")]
+    #[sdk_error(code = 4)]
     InsufficientBalance,
+
     #[error("witness already submitted signature")]
+    #[sdk_error(code = 5)]
     AlreadySubmittedSignature,
+
     #[error("unsupported denomination")]
+    #[sdk_error(code = 6)]
     UnsupportedDenomination,
-}
-
-impl error::Error for Error {
-    fn module(&self) -> &str {
-        MODULE_NAME
-    }
-
-    fn code(&self) -> u32 {
-        match self {
-            Error::InvalidArgument => 1,
-            Error::NotAuthorized => 2,
-            Error::InvalidSequenceNumber => 3,
-            Error::InsufficientBalance => 4,
-            Error::AlreadySubmittedSignature => 5,
-            Error::UnsupportedDenomination => 6,
-        }
-    }
 }
 
 impl From<modules::accounts::Error> for Error {
@@ -67,17 +61,12 @@ impl From<modules::accounts::Error> for Error {
     }
 }
 
-impl From<Error> for error::RuntimeError {
-    fn from(err: Error) -> error::RuntimeError {
-        error::RuntimeError::new(err.module(), err.code(), &err.msg())
-    }
-}
-
 // TODO: Add a custom derive macro for easier event derivation (tags).
 /// Events emitted by the accounts module.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sdk::Event)]
 #[serde(untagged)]
 pub enum Event {
+    #[sdk_event(code = 1)]
     Lock {
         id: u64,
         owner: Address,
@@ -85,31 +74,15 @@ pub enum Event {
         amount: token::BaseUnits,
     },
 
+    #[sdk_event(code = 2)]
     Release {
         id: u64,
         target: Address,
         amount: token::BaseUnits,
     },
 
+    #[sdk_event(code = 3)]
     WitnessesSigned(types::WitnessSignatures),
-}
-
-impl event::Event for Event {
-    fn module(&self) -> &str {
-        MODULE_NAME
-    }
-
-    fn code(&self) -> u32 {
-        match self {
-            Event::Lock { .. } => 1,
-            Event::Release { .. } => 2,
-            Event::WitnessesSigned(_) => 3,
-        }
-    }
-
-    fn value(&self) -> cbor::Value {
-        cbor::to_value(self)
-    }
 }
 
 /// Parameters for the bridge module.
@@ -258,7 +231,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             &state::OUT_WITNESS_SIGNATURES,
         ));
         out_witness_signatures.insert(
-            &storage::OwnedStoreKey::from(id),
+            id.to_storage_key(),
             &types::WitnessSignatures::new(id, types::Operation::Lock(body)),
         );
 
@@ -300,7 +273,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             &state::OUT_WITNESS_SIGNATURES,
         ));
         let mut info: types::WitnessSignatures = out_witness_signatures
-            .get(&storage::OwnedStoreKey::from(body.id))
+            .get(body.id.to_storage_key())
             .ok_or(Error::InvalidSequenceNumber)?;
 
         // Make sure it didn't already submit a signature.
@@ -316,12 +289,12 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         // Check if there's enough signatures.
         if (info.witnesses.len() as u64) < params.threshold {
             // Not enough signatures yet.
-            out_witness_signatures.insert(&storage::OwnedStoreKey::from(body.id), &info);
+            out_witness_signatures.insert(body.id.to_storage_key(), &info);
             return Ok(());
         }
 
         // Clear entry in storage.
-        out_witness_signatures.remove(&storage::OwnedStoreKey::from(body.id));
+        out_witness_signatures.remove(body.id.to_storage_key());
 
         // Emit the collected signatures.
         ctx.emit_event(Event::WitnessesSigned(info));
@@ -361,7 +334,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             &state::IN_WITNESS_SIGNATURES,
         ));
         let mut info: types::IncomingWitnessSignatures = in_witness_signatures
-            .get(&storage::OwnedStoreKey::from(body.id))
+            .get(body.id.to_storage_key())
             .unwrap_or_default();
 
         // Make sure it didn't already submit a signature.
@@ -388,12 +361,12 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         // Check if there's enough signatures.
         if (op_sigs.witnesses.len() as u64) < params.threshold {
             // Not enough signatures yet.
-            in_witness_signatures.insert(&storage::OwnedStoreKey::from(body.id), &info);
+            in_witness_signatures.insert(body.id.to_storage_key(), &info);
             return Ok(());
         }
 
         // Clear entry in storage.
-        in_witness_signatures.remove(&storage::OwnedStoreKey::from(body.id));
+        in_witness_signatures.remove(body.id.to_storage_key());
 
         // Increment sequence number.
         let mut tstore = storage::TypedStore::new(&mut store);
@@ -573,3 +546,16 @@ impl<Accounts: modules::accounts::API> module::MigrationHandler for Module<Accou
 impl<Accounts: modules::accounts::API> module::AuthHandler for Module<Accounts> {}
 
 impl<Accounts: modules::accounts::API> module::BlockHandler for Module<Accounts> {}
+
+/// A trait that exist solely to convert u64 IDs to bytes for use as a storage key.
+/// Method call syntax is easier to read than alternatives like macro/function invocations
+/// and wrapper types.
+trait ToStorageKey {
+    fn to_storage_key(&self) -> [u8; 8];
+}
+
+impl ToStorageKey for u64 {
+    fn to_storage_key(&self) -> [u8; 8] {
+        self.to_be_bytes()
+    }
+}

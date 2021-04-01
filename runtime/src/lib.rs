@@ -58,7 +58,7 @@ impl sdk::Runtime for Runtime {
                     remote_denominations: {
                         let mut rd = BTreeMap::new();
                         rd.insert(
-                            "oETH".into(),
+                            "oETH".parse().unwrap(),
                             "0000000000000000000000000000000000000000000000000000000000000000"
                                 .into(),
                         );

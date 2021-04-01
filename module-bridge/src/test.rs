@@ -72,7 +72,7 @@ fn init_bridge_ex(ctx: &mut DispatchContext, witnesses: Vec<PublicKey>) -> Param
         remote_denominations: {
             let mut rd = BTreeMap::new();
             rd.insert(
-                "oETH".into(),
+                "oETH".parse().unwrap(),
                 "0000000000000000000000000000000000000000000000000000000000000000".into(),
             );
             rd
@@ -289,7 +289,7 @@ fn test_incoming_basic() {
             body: cbor::to_value(Release {
                 id: 0,
                 target: keys::alice::address(),
-                amount: BaseUnits::new(1_000.into(), "oETH".into()),
+                amount: BaseUnits::new(1_000.into(), "oETH".parse().unwrap()),
             }),
         },
         auth_info: transaction::AuthInfo {
@@ -341,7 +341,7 @@ fn test_incoming_basic() {
             body: cbor::to_value(Release {
                 id: 0,
                 target: keys::alice::address(),
-                amount: BaseUnits::new(1_000.into(), "oETH".into()),
+                amount: BaseUnits::new(1_000.into(), "oETH".parse().unwrap()),
             }),
         },
         auth_info: transaction::AuthInfo {
@@ -365,7 +365,7 @@ fn test_incoming_basic() {
             "native token balance in target account should be unchanged"
         );
         assert_eq!(
-            bals.balances[&"oETH".into()],
+            bals.balances[&"oETH".parse().unwrap()],
             1_000.into(),
             "tokens should have been minted"
         );
@@ -379,7 +379,7 @@ fn test_incoming_basic() {
         let bals = Accounts::get_balances(tx_ctx.runtime_state(), *ADDRESS_LOCKED_FUNDS)
             .expect("get_balances should succeed");
         assert_eq!(
-            bals.balances[&"oETH".into()],
+            bals.balances[&"oETH".parse().unwrap()],
             0.into(),
             "no minted tokens should remain in the bridge account"
         );
@@ -409,7 +409,7 @@ fn test_incoming_fail_invalid_sequence() {
             body: cbor::to_value(Release {
                 id: 1, // Invalid sequence as it should be 0.
                 target: keys::alice::address(),
-                amount: BaseUnits::new(1_000.into(), "oETH".into()),
+                amount: BaseUnits::new(1_000.into(), "oETH".parse().unwrap()),
             }),
         },
         auth_info: transaction::AuthInfo {
@@ -445,7 +445,7 @@ fn test_incoming_fail_divergence() {
             body: cbor::to_value(Release {
                 id: 0,
                 target: keys::alice::address(),
-                amount: BaseUnits::new(1_000.into(), "oETH".into()),
+                amount: BaseUnits::new(1_000.into(), "oETH".parse().unwrap()),
             }),
         },
         auth_info: transaction::AuthInfo {
@@ -471,7 +471,7 @@ fn test_incoming_fail_divergence() {
             body: cbor::to_value(Release {
                 id: 0,
                 target: keys::alice::address(),
-                amount: BaseUnits::new(2_000.into(), "oETH".into()),
+                amount: BaseUnits::new(2_000.into(), "oETH".parse().unwrap()),
             }),
         },
         auth_info: transaction::AuthInfo {
@@ -519,7 +519,7 @@ fn test_incoming_fail_divergence() {
             body: cbor::to_value(Release {
                 id: 0,
                 target: keys::alice::address(),
-                amount: BaseUnits::new(1_000.into(), "oETH".into()),
+                amount: BaseUnits::new(1_000.into(), "oETH".parse().unwrap()),
             }),
         },
         auth_info: transaction::AuthInfo {
@@ -546,7 +546,7 @@ fn test_incoming_fail_divergence() {
         "native token balance in target account should be unchanged"
     );
     assert_eq!(
-        bals.balances[&"oETH".into()],
+        bals.balances[&"oETH".parse().unwrap()],
         1_000.into(),
         "tokens should have been minted"
     );
@@ -560,7 +560,7 @@ fn test_incoming_fail_divergence() {
     let bals = Accounts::get_balances(ctx.runtime_state(), *ADDRESS_LOCKED_FUNDS)
         .expect("get_balances should succeed");
     assert_eq!(
-        bals.balances[&"oETH".into()],
+        bals.balances[&"oETH".parse().unwrap()],
         0.into(),
         "no minted tokens should remain in the bridge account"
     );
