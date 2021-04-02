@@ -318,6 +318,10 @@ export const playground = (async function () {
         await releaseWaiter.wait(remoteReleaseID);
         console.log('in remote done');
     }
+    // Parameters.
+    {
+        console.log('bridge parameters', await bridgeWrapper.queryParameters().query(nic));
+    }
 })();
 
 playground.catch((e) => {

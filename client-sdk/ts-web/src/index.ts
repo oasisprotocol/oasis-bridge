@@ -19,6 +19,7 @@ export const METHOD_WITNESS = 'bridge.Witness';
 export const METHOD_RELEASE = 'bridge.Release';
 // Queries.
 export const METHOD_NEXT_SEQUENCE_NUMBERS = 'bridge.NextSequenceNumbers';
+export const METHOD_PARAMETERS = 'bridge.Parameters';
 
 export const EVENT_LOCK_CODE = 1;
 export const EVENT_RELEASE_CODE = 2;
@@ -60,6 +61,28 @@ export interface NextSequenceNumbers {
 export interface Operation {
     lock?: Lock;
     release?: Release;
+}
+
+/**
+ * Parameters for the bridge module.
+ */
+export interface Parameters {
+    /**
+     * A list of authorized witness public keys.
+     */
+    witnesses: oasisRT.types.PublicKey[];
+    /**
+     * Number of witnesses that needs to sign off.
+     */
+    threshold: oasis.types.longnum;
+    /**
+     * Denominations local to this side of the bridge.
+     */
+    local_denominations: Uint8Array[];
+    /**
+     * Denominations that exist on the remote side of the bridge.
+     */
+    remote_denominations: Map<Uint8Array, Uint8Array>;
 }
 
 /**
@@ -106,5 +129,6 @@ export class Wrapper extends oasisRT.wrapper.Base {
     callRelease() { return this.call<Release, void>(METHOD_RELEASE); }
 
     queryNextSequenceNumbers() { return this.query<void, NextSequenceNumbers>(METHOD_NEXT_SEQUENCE_NUMBERS); }
+    queryParameters() { return this.query<void, Parameters>(METHOD_PARAMETERS); }
 
 }
