@@ -105,3 +105,33 @@ jobs:
       - name: Cypress run
         working-directory: client-sdk/ts-web
         run: npx -c 'cypress run'
+
+  e2e:
+    # NOTE: This name appears in GitHub's Checks API.
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: 'testnet: Install system packages'
+        run: sudo apt-get -y install bubblewrap
+
+      - name: 'testnet: Download artifacts'
+        working-directory: client-sdk/ts-web/playground
+        run: ./download-artifacts.sh
+
+      - name: 'testnet: Build runtime'
+        working-directory: client-sdk/ts-web/playground
+        run: ./build-runtime.sh
+
+      - name: 'testnet: Start'
+        working-directory: client-sdk/ts-web/playground
+        run: ./sample-run-network.sh &
+
+      - name: 'user-witness-flow'
+        working-directory: examples/user-witness-flow
+        env:
+          OASIS_NODE_GRPC_ADDR: 'unix:/tmp/oasis-net-runner-bridge/net-runner/network/client-0/internal.sock'
+          BRIDGE_RUNTIME_ID: '8000000000000000000000000000000000000000000000000000000000000000'
+        run: go run .
