@@ -106,9 +106,9 @@ jobs:
         working-directory: client-sdk/ts-web
         run: npx -c 'cypress run'
 
-  e2e:
+  e2e-go:
     # NOTE: This name appears in GitHub's Checks API.
-    name: e2e
+    name: e2e-go
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
