@@ -1,5 +1,5 @@
 [workspace]
 members = [
-    "runtime",
+    "examples/runtime",
     "module-bridge"
 ]
