@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.1-alpha1
+
+Spotlight change:
+
+- We've added the method wrapper for `bridge.Parameters`.
+
 ## v0.1.0-alpha1
 
 Spotlight change:
