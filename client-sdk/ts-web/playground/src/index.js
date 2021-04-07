@@ -9,13 +9,6 @@ const BRIDGE_RUNTIME_ID = oasis.misc.fromHex('8000000000000000000000000000000000
 
 const FEE_FREE = /** @type {oasisRT.types.BaseUnits} */ ([oasis.quantity.fromBigInt(0n), oasisRT.token.NATIVE_DENOMINATION]);
 
-const LOCK_EVENT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisBridge.MODULE_NAME, oasisBridge.EVENT_LOCK_CODE));
-const RELEASE_EVENT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisBridge.MODULE_NAME, oasisBridge.EVENT_RELEASE_CODE));
-const WITNESSES_SIGNED_EVENT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisBridge.MODULE_NAME, oasisBridge.EVENT_WITNESSES_SIGNED_CODE));
-const TRANSFER_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisRT.accounts.MODULE_NAME, oasisRT.accounts.EVENT_TRANSFER_CODE));
-const BURN_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisRT.accounts.MODULE_NAME, oasisRT.accounts.EVENT_BURN_CODE));
-const MINT_TAG_HEX = oasis.misc.toHex(oasisRT.event.toTag(oasisRT.accounts.MODULE_NAME, oasisRT.accounts.EVENT_MINT_CODE));
-
 /**
  * @template E
  */
@@ -182,77 +175,33 @@ export const playground = (async function () {
     // The user and witnesses are normally on different computers and would each watch blocks on their
     // own, but for simplicity in this example, we're running a single shared subscription.
 
-    /**
-     * @param {oasisBridge.LockEvent} lockEvent
-     */
-    function handleLockEvent(lockEvent) {
-        console.log('observed lock', lockEvent);
-        lockWaiter.observe(lockEvent.id, lockEvent);
-    }
-
-    /**
-     * @param {oasisBridge.ReleaseEvent} releaseEvent
-     */
-    function handleReleaseEvent(releaseEvent) {
-        console.log('observed release', releaseEvent);
-        releaseWaiter.observe(releaseEvent.id, releaseEvent);
-    }
-
-    /**
-     * @param {oasisBridge.WitnessSignatures} witnessSignatures
-     */
-    function handleWitnessesSignedEvent(witnessSignatures) {
-        console.log('observed witnesses signed', witnessSignatures);
-        witnessesSignedWaiter.observe(witnessSignatures.id, witnessSignatures);
-    }
-
-    /**
-     * @param {oasisRT.types.AccountsTransferEvent} transferEvent
-     */
-    function handleTransferEvent(transferEvent) {
-        console.log('observed transfer', transferEvent);
-    }
-
-    /**
-     * @param {oasisRT.types.AccountsBurnEvent} burnEvent
-     */
-    function handleBurnEvent(burnEvent) {
-        console.log('observed burn', burnEvent);
-    }
-
-    /**
-     * @param {oasisRT.types.AccountsMintEvent} mintEvent
-     */
-    function handleMintEvent(mintEvent) {
-        console.log('observed mint', mintEvent);
-    }
-
-    /**
-     * @param {oasis.types.RuntimeClientEvent} event
-     */
-    function handleEvent(event) {
-        console.log('observed event', event);
-        switch (oasis.misc.toHex(event.key)) {
-            case LOCK_EVENT_TAG_HEX:
-                handleLockEvent(/** @type {oasisBridge.LockEvent} */ (oasis.misc.fromCBOR(event.value)));
-                break;
-            case RELEASE_EVENT_TAG_HEX:
-                handleReleaseEvent(/** @type {oasisBridge.ReleaseEvent} */ (oasis.misc.fromCBOR(event.value)));
-                break;
-            case WITNESSES_SIGNED_EVENT_TAG_HEX:
-                handleWitnessesSignedEvent(/** @type {oasisBridge.WitnessSignatures} */ (oasis.misc.fromCBOR(event.value)));
-                break;
-            case TRANSFER_TAG_HEX:
-                handleTransferEvent(/** @type {oasisRT.types.AccountsTransferEvent} */ (oasis.misc.fromCBOR(event.value)));
-                break;
-            case BURN_TAG_HEX:
-                handleBurnEvent(/** @type {oasisRT.types.AccountsBurnEvent} */ (oasis.misc.fromCBOR(event.value)));
-                break;
-            case MINT_TAG_HEX:
-                handleMintEvent(/** @type {oasisRT.types.AccountsMintEvent} */ (oasis.misc.fromCBOR(event.value)));
-                break;
-        }
-    }
+    const eventVisitor = new oasisRT.event.Visitor([
+        oasisRT.accounts.moduleEventHandler({
+            [oasisRT.accounts.EVENT_TRANSFER_CODE]: (e, transferEvent) => {
+                console.log('observed transfer', transferEvent);
+            },
+            [oasisRT.accounts.EVENT_BURN_CODE]: (e, releaseEvent) => {
+                console.log('observed burn', releaseEvent);
+            },
+            [oasisRT.accounts.EVENT_MINT_CODE]: (e, mintEvent) => {
+                console.log('observed mint', mintEvent);
+            }
+        }),
+        oasisBridge.moduleEventHandler({
+            [oasisBridge.EVENT_LOCK_CODE]: (e, lockEvent) => {
+                console.log('observed lock', lockEvent);
+                lockWaiter.observe(lockEvent.id, lockEvent);
+            },
+            [oasisBridge.EVENT_RELEASE_CODE]: (e, releaseEvent) => {
+                console.log('observed release', releaseEvent);
+                releaseWaiter.observe(releaseEvent.id, releaseEvent);
+            },
+            [oasisBridge.EVENT_WITNESSES_SIGNED_CODE]: (e, witnessSignatures) => {
+                console.log('observed witnesses signed', witnessSignatures);
+                witnessesSignedWaiter.observe(witnessSignatures.id, witnessSignatures);
+            },
+        }),
+    ]);
 
     /**
      * @param {oasis.types.RoothashAnnotatedBlock} annotatedBlock
@@ -267,7 +216,8 @@ export const playground = (async function () {
                     round: annotatedBlock.block.header.round,
                 }) || [];
                 for (const event of events) {
-                    handleEvent(event);
+                    console.log('observed event', event);
+                    eventVisitor.visit(event);
                 }
             } catch (e) {
                 console.error(e);
