@@ -132,3 +132,11 @@ export class Wrapper extends oasisRT.wrapper.Base {
     queryParameters() { return this.query<void, Parameters>(METHOD_PARAMETERS); }
 
 }
+
+export function moduleEventHandler(codes: {
+    [EVENT_LOCK_CODE]?: oasisRT.event.Handler<LockEvent>;
+    [EVENT_RELEASE_CODE]?: oasisRT.event.Handler<ReleaseEvent>;
+    [EVENT_WITNESSES_SIGNED_CODE]?: oasisRT.event.Handler<WitnessSignatures>;
+}) {
+    return [MODULE_NAME, codes] as oasisRT.event.ModuleHandler;
+}

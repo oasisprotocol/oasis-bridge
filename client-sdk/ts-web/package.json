@@ -12,7 +12,7 @@
     },
     "dependencies": {
         "@oasisprotocol/client": "^0.1.0-alpha1",
-        "@oasisprotocol/client-rt": "^0.1.0-alpha1"
+        "@oasisprotocol/client-rt": "^0.2.0-alpha1"
     },
     "devDependencies": {
         "@types/elliptic": "^6.4.12",
