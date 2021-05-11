@@ -31,8 +31,8 @@ jobs:
       - name: Unit tests with coverage
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: '0.16.0'
-          args: '-- --test-threads 1'
+          version: '0.18.0-alpha3'
+          args: '--avoid-cfg-tarpaulin -- --test-threads 1'
         env:
           # Required as tarpaulin doesn't honor .cargo/config.
           RUSTFLAGS: -C target-feature=+aes,+ssse3
@@ -87,6 +87,8 @@ jobs:
       - name: 'testnet: Download artifacts'
         working-directory: client-sdk/ts-web/playground
         run: ./download-artifacts.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'testnet: Build runtime'
         working-directory: client-sdk/ts-web/playground
@@ -106,6 +108,14 @@ jobs:
         working-directory: client-sdk/ts-web
         run: npx -c 'cypress run'
 
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: e2e-ts-web-logs
+          path: |
+            /tmp/oasis-net-runner-bridge/**/*.log
+
   e2e-go:
     # NOTE: This name appears in GitHub's Checks API.
     name: e2e-go
@@ -120,6 +130,8 @@ jobs:
       - name: 'testnet: Download artifacts'
         working-directory: client-sdk/ts-web/playground
         run: ./download-artifacts.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'testnet: Build runtime'
         working-directory: client-sdk/ts-web/playground
@@ -135,3 +147,11 @@ jobs:
           OASIS_NODE_GRPC_ADDR: 'unix:/tmp/oasis-net-runner-bridge/net-runner/network/client-0/internal.sock'
           BRIDGE_RUNTIME_ID: '8000000000000000000000000000000000000000000000000000000000000000'
         run: go run .
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: e2e-go-logs
+          path: |
+            /tmp/oasis-net-runner-bridge/**/*.log

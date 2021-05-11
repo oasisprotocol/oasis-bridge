@@ -1,4 +1,6 @@
 //! Bridge runtime module.
+#![deny(rust_2018_idioms)]
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use lazy_static::lazy_static;
@@ -7,7 +9,7 @@ use thiserror::Error;
 
 use oasis_runtime_sdk::{
     self as sdk,
-    context::{DispatchContext, TxContext},
+    context::{Context, DispatchContext, TxContext},
     core::common::cbor,
     crypto::signature::PublicKey,
     error::{self, Error as _},
@@ -185,7 +187,7 @@ lazy_static! {
 
 impl<Accounts: modules::accounts::API> Module<Accounts> {
     fn ensure_local_or_remote(
-        ctx: &mut TxContext,
+        ctx: &mut TxContext<'_, '_>,
         denomination: &token::Denomination,
     ) -> Result<Option<types::RemoteDenomination>, Error> {
         let params = Self::params(ctx.runtime_state());
@@ -202,20 +204,16 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         Err(Error::UnsupportedDenomination)
     }
 
-    fn tx_lock(ctx: &mut TxContext, body: types::Lock) -> Result<types::LockResult, Error> {
+    fn tx_lock(ctx: &mut TxContext<'_, '_>, body: types::Lock) -> Result<types::LockResult, Error> {
         let remote = Self::ensure_local_or_remote(ctx, body.amount.denomination())?;
+        let caller_address = ctx.tx_caller_address().expect("transaction context");
 
         if ctx.is_check_only() {
             return Ok(types::LockResult { id: 0 });
         }
 
         // Transfer funds from user's account into the bridge-owned account.
-        Accounts::transfer(
-            ctx,
-            ctx.tx_caller_address(),
-            *ADDRESS_LOCKED_FUNDS,
-            &body.amount,
-        )?;
+        Accounts::transfer(ctx, caller_address, *ADDRESS_LOCKED_FUNDS, &body.amount)?;
 
         // Assign a unique identifier to the event.
         let mut store = storage::PrefixStore::new(ctx.runtime_state(), &MODULE_NAME);
@@ -244,7 +242,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         // Emit a lock event.
         ctx.emit_event(Event::Lock {
             id,
-            owner: ctx.tx_caller_address(),
+            owner: caller_address,
             target,
             amount,
         });
@@ -252,18 +250,19 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         Ok(types::LockResult { id })
     }
 
-    fn tx_witness(ctx: &mut TxContext, body: types::Witness) -> Result<(), Error> {
+    fn tx_witness(ctx: &mut TxContext<'_, '_>, body: types::Witness) -> Result<(), Error> {
         if ctx.is_check_only() {
             return Ok(());
         }
 
+        let caller_address = ctx.tx_caller_address().expect("transaction context");
         let params = Self::params(ctx.runtime_state());
         // Make sure the caller is an authorized witness.
         let (index, _pk) = params
             .witnesses
             .iter()
             .enumerate()
-            .find(|(_, pk)| Address::from_pk(pk) == ctx.tx_caller_address())
+            .find(|(_, pk)| Address::from_pk(pk) == caller_address)
             .ok_or(Error::NotAuthorized)?;
 
         // Check if sequence number is correct.
@@ -302,8 +301,9 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         Ok(())
     }
 
-    fn tx_release(ctx: &mut TxContext, body: types::Release) -> Result<(), Error> {
+    fn tx_release(ctx: &mut TxContext<'_, '_>, body: types::Release) -> Result<(), Error> {
         let remote = Self::ensure_local_or_remote(ctx, body.amount.denomination())?;
+        let caller_address = ctx.tx_caller_address().expect("transaction context");
 
         if ctx.is_check_only() {
             return Ok(());
@@ -315,7 +315,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
             .witnesses
             .iter()
             .enumerate()
-            .find(|(_, pk)| Address::from_pk(pk) == ctx.tx_caller_address())
+            .find(|(_, pk)| Address::from_pk(pk) == caller_address)
             .ok_or(Error::NotAuthorized)?;
         let index = index as u16;
 
@@ -392,7 +392,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
     }
 
     fn query_next_sequence_numbers(
-        ctx: &mut DispatchContext,
+        ctx: &mut DispatchContext<'_>,
         _args: (),
     ) -> Result<types::NextSequenceNumbers, Error> {
         let store = storage::PrefixStore::new(ctx.runtime_state(), &MODULE_NAME);
@@ -404,7 +404,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         })
     }
 
-    fn query_parameters(ctx: &mut DispatchContext, _args: ()) -> Result<Parameters, Error> {
+    fn query_parameters(ctx: &mut DispatchContext<'_>, _args: ()) -> Result<Parameters, Error> {
         Ok(Self::params(ctx.runtime_state()))
     }
 }
@@ -412,7 +412,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
 impl<Accounts: modules::accounts::API> Module<Accounts> {
     fn _callable_lock_handler(
         _mi: &CallableMethodInfo,
-        ctx: &mut TxContext,
+        ctx: &mut TxContext<'_, '_>,
         body: cbor::Value,
     ) -> CallResult {
         let result = || -> Result<cbor::Value, Error> {
@@ -427,7 +427,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
 
     fn _callable_witness_handler(
         _mi: &CallableMethodInfo,
-        ctx: &mut TxContext,
+        ctx: &mut TxContext<'_, '_>,
         body: cbor::Value,
     ) -> CallResult {
         let result = || -> Result<cbor::Value, Error> {
@@ -442,7 +442,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
 
     fn _callable_release_handler(
         _mi: &CallableMethodInfo,
-        ctx: &mut TxContext,
+        ctx: &mut TxContext<'_, '_>,
         body: cbor::Value,
     ) -> CallResult {
         let result = || -> Result<cbor::Value, Error> {
@@ -457,7 +457,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
 
     fn _query_next_sequence_numbers_handler(
         _mi: &QueryMethodInfo,
-        ctx: &mut DispatchContext,
+        ctx: &mut DispatchContext<'_>,
         args: cbor::Value,
     ) -> Result<cbor::Value, error::RuntimeError> {
         let args = cbor::from_value(args).map_err(|_| Error::InvalidArgument)?;
@@ -468,7 +468,7 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
 
     fn _query_parameters_handler(
         _mi: &QueryMethodInfo,
-        ctx: &mut DispatchContext,
+        ctx: &mut DispatchContext<'_>,
         args: cbor::Value,
     ) -> Result<cbor::Value, error::RuntimeError> {
         let args = cbor::from_value(args).map_err(|_| Error::InvalidArgument)?;
@@ -482,6 +482,8 @@ impl<Accounts: modules::accounts::API> module::Module for Module<Accounts> {
     type Event = Event;
     type Parameters = Parameters;
 }
+
+impl<Accounts: modules::accounts::API> module::MessageHookRegistrationHandler for Module<Accounts> {}
 
 impl<Accounts: modules::accounts::API> module::MethodRegistrationHandler for Module<Accounts> {
     fn register_methods(methods: &mut module::MethodRegistry) {
@@ -512,12 +514,12 @@ impl<Accounts: modules::accounts::API> module::MethodRegistrationHandler for Mod
 }
 
 impl<Accounts: modules::accounts::API> Module<Accounts> {
-    fn init(ctx: &mut DispatchContext, genesis: &Genesis) {
+    fn init(ctx: &mut DispatchContext<'_>, genesis: &Genesis) {
         // Set genesis parameters.
         Self::set_params(ctx.runtime_state(), &genesis.parameters);
     }
 
-    fn migrate(_ctx: &mut DispatchContext, _from: u32) -> bool {
+    fn migrate(_ctx: &mut DispatchContext<'_>, _from: u32) -> bool {
         // No migrations currently supported.
         false
     }
@@ -527,7 +529,7 @@ impl<Accounts: modules::accounts::API> module::MigrationHandler for Module<Accou
     type Genesis = Genesis;
 
     fn init_or_migrate(
-        ctx: &mut DispatchContext,
+        ctx: &mut DispatchContext<'_>,
         meta: &mut modules::core::types::Metadata,
         genesis: &Self::Genesis,
     ) -> bool {

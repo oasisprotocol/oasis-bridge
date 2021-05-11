@@ -9,15 +9,21 @@ use oasis_runtime_sdk::{
 pub struct Runtime;
 
 impl sdk::Runtime for Runtime {
-    const VERSION: Version = Version::new(0, 0, 1);
+    const VERSION: Version = sdk::version_from_cargo!();
 
     type Modules = (
+        modules::core::Module,
         modules::accounts::Module,
         oasis_module_bridge::Module<modules::accounts::Module>,
     );
 
     fn genesis_state() -> <Self::Modules as sdk::module::MigrationHandler>::Genesis {
         (
+            modules::core::Genesis {
+                parameters: modules::core::Parameters {
+                    max_batch_gas: 10_000,
+                },
+            },
             modules::accounts::Genesis {
                 balances: {
                     let mut balances = BTreeMap::new();
