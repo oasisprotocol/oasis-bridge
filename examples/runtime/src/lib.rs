@@ -73,6 +73,7 @@ impl sdk::Runtime for Runtime {
                     witnesses: vec![
                         sdk::testing::keys::bob::pk(),
                         sdk::testing::keys::charlie::pk(),
+                        sdk::testing::keys::dave::pk(),
                     ],
                     threshold: 2,
                 },
