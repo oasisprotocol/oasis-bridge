@@ -613,7 +613,7 @@ func main() {
 
 	// Start two witnesses.
 	go witness(ctx, &wg, &releaseWg, rc, info.ChainContext, testing.Bob.Signer)
-	go witness(ctx, &wg, &releaseWg, rc, info.ChainContext, testing.Charlie.Signer)
+	go witness(ctx, &wg, &releaseWg, rc, info.ChainContext, testing.Dave.Signer)
 	// Start one user.
 	go user(ctx, &wg, rc, info.ChainContext, testing.Alice.Signer)
 

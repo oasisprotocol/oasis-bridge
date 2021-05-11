@@ -2,7 +2,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use oasis_runtime_sdk::{
-    context::DispatchContext,
+    context::{Context, DispatchContext},
     core::common::cbor,
     crypto::signature::PublicKey,
     module::MigrationHandler,
@@ -21,7 +21,7 @@ use super::{types::*, Error, Genesis, Parameters, ADDRESS_LOCKED_FUNDS};
 
 type Bridge = super::Module<Accounts>;
 
-fn init_accounts(ctx: &mut DispatchContext) {
+fn init_accounts(ctx: &mut DispatchContext<'_>) {
     Accounts::init_or_migrate(
         ctx,
         &mut core::types::Metadata::default(),
@@ -58,11 +58,11 @@ fn init_accounts(ctx: &mut DispatchContext) {
     );
 }
 
-fn init_bridge(ctx: &mut DispatchContext) -> Parameters {
+fn init_bridge(ctx: &mut DispatchContext<'_>) -> Parameters {
     init_bridge_ex(ctx, vec![keys::bob::pk(), keys::charlie::pk()])
 }
 
-fn init_bridge_ex(ctx: &mut DispatchContext, witnesses: Vec<PublicKey>) -> Parameters {
+fn init_bridge_ex(ctx: &mut DispatchContext<'_>, witnesses: Vec<PublicKey>) -> Parameters {
     let parameters = Parameters {
         local_denominations: {
             let mut ld = BTreeSet::new();
