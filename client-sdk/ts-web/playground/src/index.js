@@ -56,10 +56,11 @@ const bridgeWrapper = new oasisBridge.Wrapper(BRIDGE_RUNTIME_ID);
 /**
  * @param {string} label
  * @param {oasis.signature.ContextSigner} user
+ * @param {Uint8Array} target
  * @param {oasisRT.types.BaseUnits} amount
  * @param {string} consensusChainContext
  */
-async function userOut(label, user, amount, consensusChainContext) {
+async function userOut(label, user, target, amount, consensusChainContext) {
     console.log('out user', label, 'getting nonce');
     const nonce = await accountsWrapper.queryNonce()
         .setArgs({
@@ -68,8 +69,6 @@ async function userOut(label, user, amount, consensusChainContext) {
         .query(nic);
     console.log('out user', label, 'nonce', nonce);
     const siUser = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: user.public()}, nonce});
-
-    const target = oasis.misc.fromHex('0000000000000000000000000000000000000000');
 
     console.log('out user', label, 'locking', amount);
     const tw = bridgeWrapper.callLock()
@@ -231,7 +230,7 @@ export const playground = (async function () {
     // Out flow.
     {
         console.log('out user locking');
-        const id = await userOut('alice', new oasis.signature.BlindContextSigner(alice), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION], consensusChainContext);
+        const id = await userOut('alice', new oasis.signature.BlindContextSigner(alice), oasis.misc.fromHex('0000000000000000000000000000000000000000'), [oasis.quantity.fromBigInt(10n), oasisRT.token.NATIVE_DENOMINATION], consensusChainContext);
         console.log('out waiting for lock event');
         await lockWaiter.wait(id);
         console.log('out witnesses signing');
