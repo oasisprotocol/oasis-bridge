@@ -68,7 +68,10 @@ async function userOut(label, user, target, amount, consensusChainContext) {
         })
         .query(nic);
     console.log('out user', label, 'nonce', nonce);
-    const siUser = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: user.public()}, nonce});
+    const siUser = /** @type {oasisRT.types.SignerInfo} */ ({
+        address_spec: {signature: {ed25519: user.public()}},
+        nonce,
+    });
 
     console.log('out user', label, 'locking', amount);
     const tw = bridgeWrapper.callLock()
@@ -102,7 +105,10 @@ async function witnessIn(label, witness, id, amount, target, consensusChainConte
         })
         .query(nic);
     console.log('in witness', label, 'nonce', nonce);
-    const siWitness = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: witness.public()}, nonce});
+    const siWitness = /** @type {oasisRT.types.SignerInfo} */ ({
+        address_spec: {signature: {ed25519: witness.public()}},
+        nonce,
+    });
 
     console.log('in witness', label, 'releasing', id, amount, target);
     const tw = bridgeWrapper.callRelease()
@@ -133,7 +139,10 @@ async function witnessOut(label, witness, id, consensusChainContext) {
         })
         .query(nic);
     console.log('out witness', label, 'nonce', nonce);
-    const siWitness = /** @type {oasisRT.types.SignerInfo} */ ({pub: {ed25519: witness.public()}, nonce});
+    const siWitness = /** @type {oasisRT.types.SignerInfo} */ ({
+        address_spec: {signature: {ed25519: witness.public()}},
+        nonce,
+    });
 
     const sig = oasis.misc.fromString(`signature:${btoa(String.fromCharCode.apply(null, witness.public()))}`);
     console.log('out witness', label, 'witnessing', id, sig);
