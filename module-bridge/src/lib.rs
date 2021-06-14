@@ -9,11 +9,11 @@ use thiserror::Error;
 
 use oasis_runtime_sdk::{
     self as sdk,
-    context::{Context, DispatchContext, TxContext},
+    context::{Context, TxContext},
     core::common::cbor,
     crypto::signature::PublicKey,
     error::{self, Error as _},
-    module::{self, CallableMethodInfo, Module as _, QueryMethodInfo},
+    module::{self, Module as _},
     modules, storage,
     types::{address::Address, token, transaction::CallResult},
 };
@@ -25,7 +25,6 @@ pub mod types;
 /// Unique module name.
 const MODULE_NAME: &str = "bridge";
 
-// TODO: Add a custom derive macro for easier error derivation (module/error codes).
 /// Errors emitted by the accounts module.
 #[derive(Error, Debug, sdk::Error)]
 pub enum Error {
@@ -63,7 +62,6 @@ impl From<modules::accounts::Error> for Error {
     }
 }
 
-// TODO: Add a custom derive macro for easier event derivation (tags).
 /// Events emitted by the accounts module.
 #[derive(Debug, Serialize, Deserialize, sdk::Event)]
 #[serde(untagged)]
@@ -186,8 +184,8 @@ lazy_static! {
 }
 
 impl<Accounts: modules::accounts::API> Module<Accounts> {
-    fn ensure_local_or_remote(
-        ctx: &mut TxContext<'_, '_>,
+    fn ensure_local_or_remote<C: Context>(
+        ctx: &mut C,
         denomination: &token::Denomination,
     ) -> Result<Option<types::RemoteDenomination>, Error> {
         let params = Self::params(ctx.runtime_state());
@@ -204,9 +202,9 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         Err(Error::UnsupportedDenomination)
     }
 
-    fn tx_lock(ctx: &mut TxContext<'_, '_>, body: types::Lock) -> Result<types::LockResult, Error> {
+    fn tx_lock<C: TxContext>(ctx: &mut C, body: types::Lock) -> Result<types::LockResult, Error> {
         let remote = Self::ensure_local_or_remote(ctx, body.amount.denomination())?;
-        let caller_address = ctx.tx_caller_address().expect("transaction context");
+        let caller_address = ctx.tx_caller_address();
 
         if ctx.is_check_only() {
             return Ok(types::LockResult { id: 0 });
@@ -250,12 +248,12 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         Ok(types::LockResult { id })
     }
 
-    fn tx_witness(ctx: &mut TxContext<'_, '_>, body: types::Witness) -> Result<(), Error> {
+    fn tx_witness<C: TxContext>(ctx: &mut C, body: types::Witness) -> Result<(), Error> {
         if ctx.is_check_only() {
             return Ok(());
         }
 
-        let caller_address = ctx.tx_caller_address().expect("transaction context");
+        let caller_address = ctx.tx_caller_address();
         let params = Self::params(ctx.runtime_state());
         // Make sure the caller is an authorized witness.
         let (index, _pk) = params
@@ -301,9 +299,9 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         Ok(())
     }
 
-    fn tx_release(ctx: &mut TxContext<'_, '_>, body: types::Release) -> Result<(), Error> {
+    fn tx_release<C: TxContext>(ctx: &mut C, body: types::Release) -> Result<(), Error> {
         let remote = Self::ensure_local_or_remote(ctx, body.amount.denomination())?;
-        let caller_address = ctx.tx_caller_address().expect("transaction context");
+        let caller_address = ctx.tx_caller_address();
 
         if ctx.is_check_only() {
             return Ok(());
@@ -391,8 +389,8 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         Ok(())
     }
 
-    fn query_next_sequence_numbers(
-        ctx: &mut DispatchContext<'_>,
+    fn query_next_sequence_numbers<C: Context>(
+        ctx: &mut C,
         _args: (),
     ) -> Result<types::NextSequenceNumbers, Error> {
         let store = storage::PrefixStore::new(ctx.runtime_state(), &MODULE_NAME);
@@ -404,75 +402,8 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
         })
     }
 
-    fn query_parameters(ctx: &mut DispatchContext<'_>, _args: ()) -> Result<Parameters, Error> {
+    fn query_parameters<C: Context>(ctx: &mut C, _args: ()) -> Result<Parameters, Error> {
         Ok(Self::params(ctx.runtime_state()))
-    }
-}
-
-impl<Accounts: modules::accounts::API> Module<Accounts> {
-    fn _callable_lock_handler(
-        _mi: &CallableMethodInfo,
-        ctx: &mut TxContext<'_, '_>,
-        body: cbor::Value,
-    ) -> CallResult {
-        let result = || -> Result<cbor::Value, Error> {
-            let args = cbor::from_value(body).map_err(|_| Error::InvalidArgument)?;
-            Ok(cbor::to_value(&Self::tx_lock(ctx, args)?))
-        }();
-        match result {
-            Ok(value) => CallResult::Ok(value),
-            Err(err) => err.to_call_result(),
-        }
-    }
-
-    fn _callable_witness_handler(
-        _mi: &CallableMethodInfo,
-        ctx: &mut TxContext<'_, '_>,
-        body: cbor::Value,
-    ) -> CallResult {
-        let result = || -> Result<cbor::Value, Error> {
-            let args = cbor::from_value(body).map_err(|_| Error::InvalidArgument)?;
-            Ok(cbor::to_value(&Self::tx_witness(ctx, args)?))
-        }();
-        match result {
-            Ok(value) => CallResult::Ok(value),
-            Err(err) => err.to_call_result(),
-        }
-    }
-
-    fn _callable_release_handler(
-        _mi: &CallableMethodInfo,
-        ctx: &mut TxContext<'_, '_>,
-        body: cbor::Value,
-    ) -> CallResult {
-        let result = || -> Result<cbor::Value, Error> {
-            let args = cbor::from_value(body).map_err(|_| Error::InvalidArgument)?;
-            Ok(cbor::to_value(&Self::tx_release(ctx, args)?))
-        }();
-        match result {
-            Ok(value) => CallResult::Ok(value),
-            Err(err) => err.to_call_result(),
-        }
-    }
-
-    fn _query_next_sequence_numbers_handler(
-        _mi: &QueryMethodInfo,
-        ctx: &mut DispatchContext<'_>,
-        args: cbor::Value,
-    ) -> Result<cbor::Value, error::RuntimeError> {
-        let args = cbor::from_value(args).map_err(|_| Error::InvalidArgument)?;
-        Ok(cbor::to_value(&Self::query_next_sequence_numbers(
-            ctx, args,
-        )?))
-    }
-
-    fn _query_parameters_handler(
-        _mi: &QueryMethodInfo,
-        ctx: &mut DispatchContext<'_>,
-        args: cbor::Value,
-    ) -> Result<cbor::Value, error::RuntimeError> {
-        let args = cbor::from_value(args).map_err(|_| Error::InvalidArgument)?;
-        Ok(cbor::to_value(&Self::query_parameters(ctx, args)?))
     }
 }
 
@@ -483,43 +414,75 @@ impl<Accounts: modules::accounts::API> module::Module for Module<Accounts> {
     type Parameters = Parameters;
 }
 
-impl<Accounts: modules::accounts::API> module::MessageHookRegistrationHandler for Module<Accounts> {}
+impl<Accounts: modules::accounts::API> module::MethodHandler for Module<Accounts> {
+    fn dispatch_call<C: TxContext>(
+        ctx: &mut C,
+        method: &str,
+        body: cbor::Value,
+    ) -> module::DispatchResult<cbor::Value, CallResult> {
+        match method {
+            "bridge.Lock" => {
+                let result = || -> Result<cbor::Value, Error> {
+                    let args = cbor::from_value(body).map_err(|_| Error::InvalidArgument)?;
+                    Ok(cbor::to_value(&Self::tx_lock(ctx, args)?))
+                }();
+                match result {
+                    Ok(value) => module::DispatchResult::Handled(CallResult::Ok(value)),
+                    Err(err) => module::DispatchResult::Handled(err.to_call_result()),
+                }
+            }
+            "bridge.Witness" => {
+                let result = || -> Result<cbor::Value, Error> {
+                    let args = cbor::from_value(body).map_err(|_| Error::InvalidArgument)?;
+                    Ok(cbor::to_value(&Self::tx_witness(ctx, args)?))
+                }();
+                match result {
+                    Ok(value) => module::DispatchResult::Handled(CallResult::Ok(value)),
+                    Err(err) => module::DispatchResult::Handled(err.to_call_result()),
+                }
+            }
+            "bridge.Release" => {
+                let result = || -> Result<cbor::Value, Error> {
+                    let args = cbor::from_value(body).map_err(|_| Error::InvalidArgument)?;
+                    Ok(cbor::to_value(&Self::tx_release(ctx, args)?))
+                }();
+                match result {
+                    Ok(value) => module::DispatchResult::Handled(CallResult::Ok(value)),
+                    Err(err) => module::DispatchResult::Handled(err.to_call_result()),
+                }
+            }
+            _ => module::DispatchResult::Unhandled(body),
+        }
+    }
 
-impl<Accounts: modules::accounts::API> module::MethodRegistrationHandler for Module<Accounts> {
-    fn register_methods(methods: &mut module::MethodRegistry) {
-        // Callable methods.
-        methods.register_callable(module::CallableMethodInfo {
-            name: "bridge.Lock",
-            handler: Self::_callable_lock_handler,
-        });
-        methods.register_callable(module::CallableMethodInfo {
-            name: "bridge.Witness",
-            handler: Self::_callable_witness_handler,
-        });
-        methods.register_callable(module::CallableMethodInfo {
-            name: "bridge.Release",
-            handler: Self::_callable_release_handler,
-        });
-
-        // Queries.
-        methods.register_query(module::QueryMethodInfo {
-            name: "bridge.NextSequenceNumbers",
-            handler: Self::_query_next_sequence_numbers_handler,
-        });
-        methods.register_query(module::QueryMethodInfo {
-            name: "bridge.Parameters",
-            handler: Self::_query_parameters_handler,
-        });
+    fn dispatch_query<C: Context>(
+        ctx: &mut C,
+        method: &str,
+        args: cbor::Value,
+    ) -> module::DispatchResult<cbor::Value, Result<cbor::Value, error::RuntimeError>> {
+        match method {
+            "bridge.NextSequenceNumbers" => module::DispatchResult::Handled((|| {
+                let args = cbor::from_value(args).map_err(|_| Error::InvalidArgument)?;
+                Ok(cbor::to_value(&Self::query_next_sequence_numbers(
+                    ctx, args,
+                )?))
+            })()),
+            "bridge.Parameters" => module::DispatchResult::Handled((|| {
+                let args = cbor::from_value(args).map_err(|_| Error::InvalidArgument)?;
+                Ok(cbor::to_value(&Self::query_parameters(ctx, args)?))
+            })()),
+            _ => module::DispatchResult::Unhandled(args),
+        }
     }
 }
 
 impl<Accounts: modules::accounts::API> Module<Accounts> {
-    fn init(ctx: &mut DispatchContext<'_>, genesis: &Genesis) {
+    fn init<C: Context>(ctx: &mut C, genesis: &Genesis) {
         // Set genesis parameters.
         Self::set_params(ctx.runtime_state(), &genesis.parameters);
     }
 
-    fn migrate(_ctx: &mut DispatchContext<'_>, _from: u32) -> bool {
+    fn migrate<C: Context>(_ctx: &mut C, _from: u32) -> bool {
         // No migrations currently supported.
         false
     }
@@ -528,8 +491,8 @@ impl<Accounts: modules::accounts::API> Module<Accounts> {
 impl<Accounts: modules::accounts::API> module::MigrationHandler for Module<Accounts> {
     type Genesis = Genesis;
 
-    fn init_or_migrate(
-        ctx: &mut DispatchContext<'_>,
+    fn init_or_migrate<C: Context>(
+        ctx: &mut C,
         meta: &mut modules::core::types::Metadata,
         genesis: &Self::Genesis,
     ) -> bool {

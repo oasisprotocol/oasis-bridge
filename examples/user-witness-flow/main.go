@@ -211,7 +211,7 @@ func user(
 		Target: NewRemoteAddressFromHex("0000000000000000000000000000000000000000"),
 		Amount: types.NewBaseUnits(*quantity.NewFromUint64(10), types.NativeDenomination),
 	})
-	tx.AppendSignerInfo(signer.Public(), nonce)
+	tx.AppendAuthSignature(signer.Public(), nonce)
 	tb := tx.PrepareForSigning()
 	if err = tb.AppendSign(chainContext, signer); err != nil {
 		logger.Error("failed to sign lock transaction",
@@ -446,7 +446,7 @@ WitnessAnEvent:
 					ID:        ev.ID,
 					Signature: evSignature,
 				})
-				tx.AppendSignerInfo(signer.Public(), nonce)
+				tx.AppendAuthSignature(signer.Public(), nonce)
 				tb := tx.PrepareForSigning()
 				if err = tb.AppendSign(chainContext, signer); err != nil {
 					logger.Error("failed to sign witness transaction",
@@ -500,7 +500,7 @@ WitnessAnEvent:
 		Target: lastUser,
 		Amount: types.NewBaseUnits(*quantity.NewFromUint64(10), types.NativeDenomination),
 	})
-	tx.AppendSignerInfo(signer.Public(), nonce)
+	tx.AppendAuthSignature(signer.Public(), nonce)
 	tb := tx.PrepareForSigning()
 	if err = tb.AppendSign(chainContext, signer); err != nil {
 		logger.Error("failed to sign release transaction",
@@ -540,7 +540,7 @@ WitnessAnEvent:
 		Target: lastUser,
 		Amount: types.NewBaseUnits(*quantity.NewFromUint64(10), types.Denomination("oETH")),
 	})
-	tx.AppendSignerInfo(signer.Public(), nonce)
+	tx.AppendAuthSignature(signer.Public(), nonce)
 	tb = tx.PrepareForSigning()
 	if err = tb.AppendSign(chainContext, signer); err != nil {
 		logger.Error("failed to sign release transaction",
