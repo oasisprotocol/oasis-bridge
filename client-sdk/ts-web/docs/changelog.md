@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased changes
+## v0.1.2-alpha1
 
-New features:
+Spotlight change:
 
 - We added a `moduleEventHandler` helper for use with `oasis.event.Visior`
   from `@oasisprotocol/client-rt`.
