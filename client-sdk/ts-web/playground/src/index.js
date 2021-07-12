@@ -212,7 +212,7 @@ export const playground = (async function () {
     ]);
 
     /**
-     * @param {oasis.types.RoothashAnnotatedBlock} annotatedBlock
+     * @param {oasis.types.RootHashAnnotatedBlock} annotatedBlock
      */
     function handleBlock(annotatedBlock) {
         console.log('observed block', annotatedBlock.block.header.round);
